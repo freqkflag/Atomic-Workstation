@@ -15,7 +15,7 @@ execution: code
 - **Objective:** Deliver the complete Atomic-Workstation platform end-to-end — desktop and mobile clients, self-hosted Docker and Kubernetes distributions, first-party Atomic Gateway with full provider catalog and enterprise controls, modern workbench, bi-temporal knowledge graph, full connector ecosystem, team RBAC, and all eight marketing reference workflows — with zero deferred product scope.
 - **Authority hierarchy:** Product Contract is exhaustive; Planning Contract KTDs resolve architecture; unspecified implementation detail is left to the implementer within stated patterns.
 - **Stop conditions:** Surface blockers only for physically impossible constraints (e.g., provider revokes API entirely); do not defer scope — resolve with documented assumptions instead.
-- **Execution profile:** Ten delivery phases, ~36 implementation units. Contract-test gateway OpenAI surface first; E2E all eight workflows in CI before release.
+- **Execution profile:** Ten delivery phases, ~37 implementation units. Contract-test gateway OpenAI surface first; FOSS SDK inventory (R96) enforced in CI from P0; E2E all eight workflows in CI before release.
 - **Tail ownership:** Implementer owns commits, CI, installers, Helm charts, and mobile store submission artifacts.
 
 ---
@@ -25,6 +25,8 @@ execution: code
 ### Summary
 
 Atomic-Workstation is a local-first, self-hostable AI workstation for builders who operate entire workflows across code, terminals, browsers, email, databases, chat, and deployment tools in one environment. The complete platform includes: Tauri desktop + Tauri mobile apps, orchestrator sidecar, **Atomic Gateway** (first-party OpenAI-compatible AI/MCP gateway), bi-temporal project knowledge graph, reusable agent workflows with scheduling, team/org RBAC with OIDC/SAML SSO, plugin marketplace, and connectors for GitHub, Vercel, Gmail, Supabase, Slack, and generic webhooks.
+
+**FOSS-first AI stack:** Wherever a mature open-source AI SDK exists, we use it instead of bespoke HTTP clients or proprietary middleware. Atomic Gateway owns routing, keys, budgets, and policy — provider adapters wrap FOSS SDKs; agents and UI compose FOSS orchestration and streaming libraries on top.
 
 **Scope policy:** This plan has no "deferred for later" product features. Every capability listed in requirements ships in this program.
 
@@ -42,6 +44,22 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R4. Self-host Kubernetes: Helm chart with HA gateway, orchestrator, ingress, persistent volumes.
 - R5. BYOK for all cloud providers; Ollama/vLLM for local inference; no training on user data.
 - R6. All state in user-configurable data directory or mounted volumes.
+
+**FOSS AI SDK mandate**
+
+- R84. **FOSS-first policy:** All AI/ML integration code prefers OSI-approved open-source SDKs (MIT, Apache-2.0, BSD). Custom HTTP clients are allowed only when no maintained FOSS SDK exists for that provider.
+- R85. **Gateway provider layer** wraps [Vercel AI SDK](https://github.com/vercel/ai) `@ai-sdk/*` provider packages (`@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/amazon-bedrock`, `@ai-sdk/azure`, `@ai-sdk/mistral`, `@ai-sdk/groq`, `@ai-sdk/cohere`, `@ai-sdk/deepseek`, `@ai-sdk/fireworks`, `@ai-sdk/togetherai`, `@ai-sdk/xai`, `@ai-sdk/perplexity`, `@ai-sdk/openai-compatible` for Ollama/vLLM/LM Studio/LocalAI) inside `ProviderAdapter` implementations — not reimplemented REST.
+- R86. **Official provider clients** supplement AI SDK where needed: `openai`, `@anthropic-ai/sdk`, `@google/generative-ai`, `@aws-sdk/client-bedrock-runtime`, `@huggingface/inference`, `ollama` npm package.
+- R87. **Agent orchestration** uses `@langchain/langgraph` + `@langchain/core`; MCP tool binding via `@langchain/mcp-adapters`.
+- R88. **Agent + UI streaming** uses Vercel `ai` package (`streamText`, `generateText`, tool calling) pointed at Atomic Gateway as the model provider.
+- R89. **MCP protocol** implemented with official `@modelcontextprotocol/sdk` (client + server transports). Community MCP servers from `@modelcontextprotocol/server-*` used where applicable (filesystem, git, GitHub, etc.).
+- R90. **Local embeddings** via `@xenova/transformers` (Transformers.js) and/or Ollama embed API; vector store in LanceDB (Apache-2.0).
+- R91. **Token counting** via `js-tiktoken` / `@dqbd/tiktoken`; cost tables maintained in `packages/gateway-core`.
+- R92. **Observability** via OpenTelemetry JS SDK + `prom-client`; optional self-hosted [Langfuse](https://github.com/langfuse/langfuse) (FOSS) for LLM trace UI.
+- R93. **Guardrails** integrate FOSS libraries where possible: `presidio`-style PII patterns, `redact-pii`, or `@anthropic-ai/sdk` moderation hooks — composed in guardrail plugin pipeline.
+- R94. **SSO** via `openid-client` (OIDC) and `@node-saml/node-saml` (SAML); test against Keycloak (Apache-2.0) in CI.
+- R95. **Dependency governance:** `pnpm licenses` + SBOM (`@cyclonedx/cyclonedx-npm`) in CI; block copyleft licenses in runtime deps without explicit approval.
+- R96. **FOSS SDK inventory** documented in `docs/foss-ai-stack.md` and kept in sync with `package.json` via CI check.
 
 **Atomic Gateway — API surface**
 
@@ -232,10 +250,11 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - Desktop + mobile + Docker + Helm all install from documented paths.
 - Multi-user team with SSO operates shared project and workflow.
 - No third-party AI gateway dependency; no credentials in logs.
+- FOSS AI SDK inventory complete per R96; gateway adapters use `@ai-sdk/*` for all providers with published packages.
 
 ### Scope Boundaries
 
-**In scope:** Everything in Requirements R1–R83.
+**In scope:** Everything in Requirements R1–R96.
 
 **Outside this product's identity (explicit non-goals only)**
 
@@ -254,6 +273,7 @@ There is no deferred product scope in this plan.
 - Postgres is the production datastore for gateway and orchestrator in self-host; SQLite acceptable for single-user offline desktop mode with sync option.
 - Mobile uses Tauri 2 mobile for maximum code reuse with desktop.
 - Provider adapters ship in waves within the program but all R14 families complete before GA — no family left unimplemented.
+- Vercel AI SDK `@ai-sdk/*` packages cover most cloud providers; gaps filled with official OSS clients per R86.
 
 ### Key Technical Decisions
 
@@ -267,6 +287,13 @@ There is no deferred product scope in this plan.
 - **KTD8.** Redis for cache, rate limits, shadow request queue in production.
 - **KTD9.** OIDC/SAML via `openid-client` + SAML library; SCIM REST endpoints.
 - **KTD10.** Helm chart for K8s; Compose for single-node.
+- **KTD11. FOSS SDK composition over custom glue** (session-settled: user-directed — maximize maintained open-source AI SDKs; build only gateway policy/routing layer ourselves). Layering:
+  - **Gateway adapters:** thin `ProviderAdapter` wrapper → `@ai-sdk/<provider>` → our router/budget/guardrails.
+  - **Agents:** `@langchain/langgraph` graphs + `@langchain/mcp-adapters` + Vercel `ai` streaming to gateway.
+  - **MCP:** `@modelcontextprotocol/sdk` for all transport code.
+  - **Embeddings:** `@xenova/transformers` + LanceDB; no proprietary embedding APIs required for core memory.
+  - **UI chat:** `@ai-sdk/react` `useChat` / custom transport wired to orchestrator WS.
+  - Custom code is reserved for: virtual keys, budgets, shadow routing, bi-temporal graph, workbench UX, and connector OAuth — not reimplementing provider HTTP.
 
 ### High-Level Technical Design
 
@@ -320,7 +347,7 @@ flowchart TB
 
 | Phase | Focus | Units |
 | --- | --- | --- |
-| P0 | Monorepo, orchestrator, projects | U1–U3 |
+| P0 | Monorepo, orchestrator, projects, FOSS governance | U1–U3, U32 |
 | P1 | Gateway core + router | U13, U17 |
 | P2 | Provider catalog wave 1 (US labs + local) | U15 |
 | P3 | Provider catalog wave 2 (cloud + enterprise) | U23 |
@@ -369,13 +396,15 @@ flowchart TB
 | U29 | Plugin and template marketplace | U7, U15, U22 |
 | U30 | Tauri mobile apps | U3, U6, U14 |
 | U31 | Kubernetes Helm chart and HA deploy | U11 |
+| U32 | FOSS dependency governance and SDK inventory | U1 |
 
 ### U1. Monorepo and Tauri desktop scaffold
 
 - **Goal:** pnpm monorepo; Tauri 2 desktop opens workbench shell.
 - **Requirements:** R1, R6, R41
 - **Files:** `package.json`, `pnpm-workspace.yaml`, `apps/desktop/`, `packages/shared/`, `packages/ui/`
-- **Approach:** Tauri 2 + React + Vite. Design tokens in `packages/ui`. Sidecar slots for orchestrator and gateway. CI builds Linux artifact.
+- **Approach:** Tauri 2 + React + Vite. Design tokens in `packages/ui`. Sidecar slots for orchestrator and gateway. Pin FOSS AI deps in root `package.json` catalog. CI builds Linux artifact.
+- **Patterns to follow:** `pnpm` workspace catalog for shared `@ai-sdk/*`, `@langchain/*`, `@modelcontextprotocol/sdk` versions.
 - **Test scenarios:** `pnpm -r build` passes; app launches headless in CI.
 - **Verification:** Desktop CI build green.
 
@@ -402,25 +431,57 @@ flowchart TB
 - **Goal:** Full OpenAI-compatible API surface including images and audio.
 - **Requirements:** R7–R12
 - **Files:** `apps/gateway/`, `packages/gateway-core/`
-- **Approach:** Fastify on `:4000`; all R7 endpoints; hot reload config; pass-through mode for native provider paths.
+- **Approach:** Fastify on `:4000`; all R7 endpoints; hot reload config; pass-through mode. SSE streaming delegates to `@ai-sdk/*` provider `streamText` internally where applicable.
 - **Test scenarios:** OpenAI SDK chat + embed + image; 401 without key.
 - **Verification:** Contract test suite.
 
 ### U15. Provider adapters wave 1
 
-- **Goal:** US labs + local inference adapters.
-- **Requirements:** R13, R14 (partial)
-- **Files:** `packages/gateway-providers/openai`, `anthropic`, `xai`, `perplexity`, `cohere`, `ai21`, `ollama`, `vllm`, `lmstudio`, `groq`, `mistral`, `together`, `deepseek`, `openrouter`, `fireworks`
-- **Approach:** `ProviderAdapter` interface; fixture tests per adapter; cost estimation tables.
-- **Test scenarios:** Each adapter passes nock fixtures; streaming works.
+- **Goal:** US labs + local inference adapters via FOSS SDKs.
+- **Requirements:** R13, R14 (partial), R85, R86
+- **Files:** `packages/gateway-providers/*`, `packages/gateway-core/src/ai-sdk-bridge.ts`
+- **Approach:** Each adapter is a thin wrapper: `ProviderAdapter` → `@ai-sdk/<provider>` package. Mapping table:
+
+| Provider | FOSS SDK package |
+| --- | --- |
+| OpenAI | `@ai-sdk/openai` |
+| Anthropic | `@ai-sdk/anthropic` |
+| xAI | `@ai-sdk/xai` |
+| Perplexity | `@ai-sdk/perplexity` |
+| Cohere | `@ai-sdk/cohere` |
+| Groq | `@ai-sdk/groq` |
+| Mistral | `@ai-sdk/mistral` |
+| Together | `@ai-sdk/togetherai` |
+| Fireworks | `@ai-sdk/fireworks` |
+| DeepSeek | `@ai-sdk/deepseek` |
+| OpenRouter | `@ai-sdk/openai-compatible` + custom base URL |
+| Ollama / vLLM / LM Studio / LocalAI | `@ai-sdk/openai-compatible` + `ollama` client for model list |
+| AI21 | `ai21` SDK or `@ai-sdk/openai-compatible` fallback |
+
+- **Test scenarios:** Each adapter passes nock fixtures; streaming via AI SDK `streamText` works.
 - **Verification:** `pnpm --filter gateway-providers test`.
 
 ### U23. Provider adapters wave 2
 
-- **Goal:** Complete R14 catalog — cloud ML, enterprise, remaining providers.
-- **Requirements:** R14, R15
-- **Files:** `packages/gateway-providers/google`, `vertex`, `azure-openai`, `bedrock`, `sagemaker`, `replicate`, `huggingface`, `baseten`, `modal`, `snowflake`, `databricks`, `nvidia-nim`, `cloudflare`, `github-models`, `aleph-alpha`, `watsonx`, `packages/gateway-marketplace/`
-- **Approach:** Finish all families; marketplace packaging format for third-party adapters; signing with ed25519.
+- **Goal:** Complete R14 catalog using FOSS SDKs.
+- **Requirements:** R14, R15, R85, R86
+- **Files:** `packages/gateway-providers/google`, `vertex`, `azure-openai`, `bedrock`, etc., `packages/gateway-marketplace/`
+- **Approach:** Wrap remaining providers with FOSS SDKs:
+
+| Provider | FOSS SDK package |
+| --- | --- |
+| Google Gemini | `@ai-sdk/google` |
+| Vertex AI | `@ai-sdk/google-vertex` |
+| Azure OpenAI | `@ai-sdk/azure` |
+| AWS Bedrock | `@ai-sdk/amazon-bedrock` |
+| SageMaker | `@aws-sdk/client-sagemaker-runtime` |
+| HuggingFace | `@huggingface/inference` |
+| Replicate | `replicate` npm (MIT) |
+| Cloudflare Workers AI | `@ai-sdk/openai-compatible` |
+| GitHub Models | `@ai-sdk/openai-compatible` |
+| Snowflake / Databricks / Watsonx / Nvidia NIM / Aleph Alpha / Modal / Baseten | Official OSS client if exists; else `@ai-sdk/openai-compatible` + documented REST shim |
+
+Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 - **Test scenarios:** Contract test per family; marketplace bundle install loads new adapter.
 - **Verification:** Full provider matrix CI job.
 
@@ -449,7 +510,7 @@ flowchart TB
 - **Goal:** Full cost control and accounting.
 - **Requirements:** R21, R26, R27, R28, R29
 - **Files:** `apps/gateway/src/auth/`, `apps/gateway/src/spend/`
-- **Approach:** Virtual keys in Postgres; budget-fallback; webhooks to Slack/email on threshold; secret manager plugin interface.
+- **Approach:** Token counting via `js-tiktoken`. Spend logging exports to OTEL + optional Langfuse self-host. Secret backends: `keytar` (keychain), `@aws-sdk/client-secrets-manager`, `node-vault`.
 - **Test scenarios:** Covers AE10; budget alert webhook fires.
 - **Verification:** Auth + spend integration tests.
 
@@ -458,7 +519,7 @@ flowchart TB
 - **Goal:** Enterprise identity and compliance.
 - **Requirements:** R23, R24, R25
 - **Files:** `apps/gateway/src/sso/`, `apps/orchestrator/src/sso/`, `apps/gateway/src/audit/`
-- **Approach:** Shared SSO session for gateway admin + workbench. SCIM `/Users` `/Groups`. Append-only audit table.
+- **Approach:** Shared SSO via `openid-client` + `@node-saml/node-saml`. SCIM endpoints. Keycloak container in CI for AE12.
 - **Test scenarios:** Covers AE12 with Keycloak fixture in CI.
 - **Verification:** SSO e2e with test IdP container.
 
@@ -477,7 +538,7 @@ flowchart TB
 - **Goal:** Full MCP server management and tool exposure.
 - **Requirements:** R30–R33
 - **Files:** `apps/gateway/src/mcp/`
-- **Approach:** All transports; OpenAPI→MCP generator; OAuth PKCE; per-team ACL.
+- **Approach:** Built on `@modelcontextprotocol/sdk` (`Client`, `StdioClientTransport`, `StreamableHTTPClientTransport`). OpenAPI→MCP via FOSS `openapi-mcp` or custom generator. OAuth via `openid-client` PKCE.
 - **Test scenarios:** GitHub MCP tools callable via REST; OAuth MCP connects.
 - **Verification:** MCP integration tests.
 
@@ -486,7 +547,7 @@ flowchart TB
 - **Goal:** Production safety and monitoring.
 - **Requirements:** R34–R36, R28
 - **Files:** `apps/gateway/src/cache/`, `guardrails/`, `observability/`
-- **Approach:** Redis semantic cache; WASM guardrail plugins; OTEL + Prometheus.
+- **Approach:** Redis cache via `ioredis` + `bullmq` for shadow queue. Guardrails: `redact-pii` + custom plugins. OTEL via `@opentelemetry/sdk-node`; metrics via `prom-client`; Langfuse export via `langfuse` npm client.
 - **Test scenarios:** Cache hit logged; PII guardrail blocks; metrics scrape works.
 - **Verification:** Unit + scrape tests.
 
@@ -522,16 +583,16 @@ flowchart TB
 - **Goal:** Workstation-native tools and secrets.
 - **Requirements:** R68
 - **Files:** `packages/mcp-hub/`, vault module
-- **Approach:** Filesystem, git, shell MCP servers; OS keychain + encrypted Postgres fallback.
+- **Approach:** Filesystem, git, shell via `@modelcontextprotocol/server-filesystem`, `server-github`, etc. Local hub built on `@modelcontextprotocol/sdk`. Vault: `keytar` + encrypted Postgres.
 - **Test scenarios:** Secret never in logs; MCP restart recovery.
 - **Verification:** Vault round-trip tests.
 
 ### U6. Agent runtime
 
-- **Goal:** LangGraph agent via gateway only.
-- **Requirements:** R50, R53, R61
+- **Goal:** LangGraph agent via gateway only; FOSS orchestration stack.
+- **Requirements:** R50, R53, R61, R87, R88
 - **Files:** `apps/orchestrator/src/agent/`
-- **Approach:** Merge local + gateway MCP tools; approval gates; gateway virtual key per project.
+- **Approach:** `@langchain/langgraph` StateGraph + `interrupt()` for approvals. Tools from `@langchain/mcp-adapters` `MultiServerMCPClient` (local + gateway MCP). LLM via `ChatOpenAI` pointed at `http://localhost:4000/v1` or Vercel `ai` `streamText` with custom gateway provider. Desktop agent chat uses `@ai-sdk/react` streaming transport.
 - **Test scenarios:** Tool loop completes; approval blocks deploy.
 - **Verification:** Agent integration tests.
 
@@ -567,17 +628,43 @@ flowchart TB
 - **Goal:** Full memory subsystem with time travel.
 - **Requirements:** R54–R58
 - **Files:** `packages/memory/`
-- **Approach:** Postgres graph tables with `valid_from`, `valid_to`, `recorded_at`. LanceDB embeddings. Consolidation cron. Contradiction edges.
+- **Approach:** Postgres graph via Drizzle ORM + `pgvector`. Embeddings via `@xenova/transformers` (`Xenova/gte-small` ONNX) with Ollama embed fallback. LanceDB for vector index. Consolidation cron. Contradiction edges.
 - **Test scenarios:** Covers AE14; ingest + query "deploy target last Tuesday".
 - **Verification:** Graph traversal unit tests.
 
 ### U10. Full connector ecosystem
 
 - **Goal:** GitHub, Vercel, Gmail, Supabase, Slack.
-- **Requirements:** R62–R66
-- **Files:** `packages/mcp-hub/servers/`, `apps/orchestrator/src/connectors/`
-- **Test scenarios:** Each connector contract tests; OAuth flows documented.
-- **Verification:** MSW fixture suite.
+- **Requirements:** R62–R66, R89
+- **Files:** `apps/orchestrator/src/connectors/`, `packages/mcp-hub/src/servers/`
+- **Approach:** Prefer FOSS MCP servers over bespoke REST clients:
+
+| Connector | FOSS integration |
+| --- | --- |
+| GitHub | `@modelcontextprotocol/server-github` + `@octokit/rest` |
+| Vercel | `@modelcontextprotocol/server-vercel` or OpenAPI MCP shim |
+| Gmail | `@modelcontextprotocol/server-gmail` (community) or Google APIs via `googleapis` |
+| Supabase | `@supabase/supabase-js` + Postgres MCP via `server-postgres` |
+| Slack | `@modelcontextprotocol/server-slack` or `@slack/web-api` |
+
+Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Connector health surfaced on project dashboard (R44).
+- **Test scenarios:** Each connector lists resources; OAuth refresh succeeds; health badge green after connect.
+- **Verification:** Connector integration tests with mocked OAuth + MCP tool smoke.
+
+### U32. FOSS dependency governance and SDK inventory
+
+- **Goal:** Enforce FOSS-first AI stack (R84–R96); keep `docs/foss-ai-stack.md` in sync with runtime deps.
+- **Requirements:** R84, R95, R96
+- **Files:** `docs/foss-ai-stack.md`, `scripts/foss-inventory-check.ts`, `.github/workflows/licenses.yml`
+- **Dependencies:** U1
+- **Approach:**
+  - Root `package.json` pnpm catalog pins all `@ai-sdk/*`, `@langchain/*`, `@modelcontextprotocol/*` versions.
+  - CI runs `pnpm licenses list --json` and `@cyclonedx/cyclonedx-npm` SBOM export.
+  - Block GPL/AGPL/LGPL in production `dependencies` without allowlist entry in `foss-allowlist.json`.
+  - `foss-inventory-check.ts` diffs `package.json` AI-related deps against `docs/foss-ai-stack.md` table; fails PR on drift.
+  - Gateway adapter PRs must update inventory when adding a provider SDK.
+- **Test scenarios:** Drifted inventory fails CI; copyleft dep without allowlist fails; SBOM artifact uploaded per release.
+- **Verification:** `pnpm foss:check` green in CI.
 
 ### U27. Generic webhook connector
 
@@ -674,6 +761,8 @@ flowchart TB
 | Docker Compose | `docker compose up --wait` | PR |
 | Helm kind | `helm test atomic-workstation` | PR nightly |
 | Security | secret scan + RBAC audit + no creds in logs | PR |
+| FOSS inventory | `pnpm foss:check` | PR |
+| License/SBOM | `pnpm licenses:ci` + CycloneDX artifact | PR + release |
 
 ---
 
@@ -681,9 +770,10 @@ flowchart TB
 
 **Global — nothing deferred**
 
-- R1–R83 implemented and traced to units.
+- R1–R96 implemented and traced to units.
 - AE1–AE14 pass (CI or documented staging for provider-specific cases).
-- All R14 provider families have shipping adapters.
+- R84–R96 FOSS mandate satisfied: `docs/foss-ai-stack.md` current; `pnpm foss:check` green; no unapproved copyleft runtime deps.
+- All R14 provider families have shipping adapters using FOSS SDKs per R85–R86.
 - Desktop, mobile, Docker, Helm install paths documented and CI-verified.
 - Atomic Gateway: full API, all providers, SSO, teams, shadow, MCP, cache, guardrails, admin, marketplace.
 - Eight reference workflows runnable end-to-end.
@@ -696,7 +786,7 @@ flowchart TB
 
 | Phase | Exit criterion |
 | --- | --- |
-| P0–P1 | Gateway accepts OpenAI SDK chat |
+| P0–P1 | Gateway accepts OpenAI SDK chat; FOSS inventory + license CI green |
 | P2–P3 | Full R14 provider matrix green |
 | P4 | AE9, AE10, AE11, AE12 pass |
 | P5 | Admin UI complete; MCP gateway live |
@@ -727,6 +817,26 @@ OpenAI, Anthropic, xAI, Perplexity, Cohere, AI21, Google Gemini, Vertex AI, Azur
 | Failed deploy fix | R77 | `fix-deployment.ts` |
 | Hero update live | R78 | `update-hero.ts` |
 | Release changelog | R79 | `release-changelog.ts` |
+
+### FOSS AI SDK stack (canonical inventory)
+
+Maintained in `docs/foss-ai-stack.md` and enforced by U32. Summary by layer:
+
+| Layer | FOSS packages | Owned by |
+| --- | --- | --- |
+| Gateway providers | `@ai-sdk/*`, `openai`, `@anthropic-ai/sdk`, `@google/generative-ai`, `@aws-sdk/client-bedrock-runtime`, `@huggingface/inference`, `ollama`, `replicate` | U15, U23 |
+| Gateway policy | Custom router, keys, budgets, shadow, guardrails | U13, U17, U18, U22 |
+| Agent runtime | `@langchain/langgraph`, `@langchain/core`, `@langchain/mcp-adapters` | U6 |
+| UI streaming | `ai`, `@ai-sdk/react` | U6, U14 |
+| MCP transport | `@modelcontextprotocol/sdk`, `@modelcontextprotocol/server-*` | U5, U10, U19 |
+| Embeddings / vectors | `@xenova/transformers`, LanceDB | U9 |
+| Token counting | `js-tiktoken` / `@dqbd/tiktoken` | U18 |
+| Observability | `@opentelemetry/sdk-node`, `prom-client`, Langfuse (self-host) | U22 |
+| Guardrails | `redact-pii`, custom plugins | U22 |
+| SSO | `openid-client`, `@node-saml/node-saml`, Keycloak (CI fixture) | U25 |
+| License governance | `@cyclonedx/cyclonedx-npm`, `pnpm licenses` | U32 |
+
+**Principle:** Atomic Gateway owns routing, policy, and keys — not provider HTTP. Adapters are thin wrappers over maintained FOSS SDKs (KTD11).
 
 ### Outside identity (unchanged non-goals)
 
