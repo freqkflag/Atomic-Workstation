@@ -1,0 +1,20 @@
+{
+  "name": "atomic-workstation",
+  "private": true,
+  "packageManager": "pnpm@10.33.3",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "foss:check": "tsx scripts/foss-inventory-check.ts",
+    "licenses:ci": "pnpm licenses list --json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "keytar"]
+  }
+}
