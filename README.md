@@ -23,6 +23,7 @@ A local-first AI workstation for **solo inventors and vibe coders** — one envi
 
 ```bash
 pnpm install
+cp .env.example .env   # ATOMIC_GATEWAY_MASTER_KEY + ATOMIC_VAULT_UNLOCKED preset
 pnpm foss:check
 pnpm -r build
 pnpm -r test
@@ -37,7 +38,7 @@ pnpm --filter @atomic/gateway dev
 pnpm --filter @atomic/desktop dev
 ```
 
-Data defaults to `./data` (PGlite). Set `ATOMIC_VAULT_UNLOCKED=true` for local vault writes. Gateway auth uses `ATOMIC_GATEWAY_MASTER_KEY` (default `dev-master`).
+Data defaults to `./data` (PGlite). The repo root `.env` (from `.env.example`) sets `ATOMIC_VAULT_UNLOCKED=true` for vault writes and `ATOMIC_GATEWAY_MASTER_KEY=dev-master` for gateway auth. `pnpm dev` scripts load it automatically.
 
 ## Packages
 

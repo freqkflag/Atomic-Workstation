@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx watch src/cli.ts",
-    "start": "tsx src/cli.ts",
+    "dev": "tsx --env-file=../../.env watch src/cli.ts",
+    "start": "tsx --env-file=../../.env src/cli.ts",
     "test": "vitest run",
     "test:integration": "vitest run src/server.integration.test.ts",
     "test:vault": "pnpm --filter @atomic/vault test"
