@@ -1,5 +1,5 @@
 ---
-title: Atomic-Workstation MVP - Plan
+title: Atomic-Workstation - Plan
 type: feat
 date: 2026-07-24
 artifact_contract: ce-unified-plan/v1
@@ -8,14 +8,14 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 ---
 
-# Atomic-Workstation MVP - Plan
+# Atomic-Workstation - Plan
 
 ## Goal Capsule
 
-- **Objective:** Ship a self-hostable, desktop-first local AI workstation that unifies projects, terminals, code editing, browser verification, agent workflows, and connected tools in one environment — proving the "operate the work" thesis with three end-to-end reference workflows.
+- **Objective:** Ship a self-hostable, desktop-first local AI workstation with a unified modern workbench UI, embedded LiteLLM AI gateway, MCP-connected tool ecosystem, persistent project knowledge graph, and seven end-to-end reference workflows — proving builders can operate entire cross-tool flows without leaving one environment.
 - **Authority hierarchy:** This plan's Product Contract defines scope; Key Technical Decisions resolve architecture forks; implementation details not specified here are left to the implementer within stated patterns.
-- **Stop conditions:** Stop and surface a blocker if a KTD assumption is invalidated (e.g., Tauri sidecar limits block required integrations), if a reference workflow cannot complete without cloud-only APIs, or if security review flags credential handling as inadequate for self-host.
-- **Execution profile:** Phased delivery — MVP first (shell + agent + 3 workflows), then memory depth and connector expansion. Prefer characterization tests on orchestration boundaries; smoke-first for packaging.
+- **Stop conditions:** Stop and surface a blocker if LiteLLM gateway integration cannot satisfy agent + MCP requirements, if OAuth connector flows fail on desktop, or if security review flags credential handling as inadequate for self-host.
+- **Execution profile:** Phased delivery across six phases. Prefer characterization tests on orchestration and gateway boundaries; smoke-first for Docker packaging.
 - **Tail ownership:** `ce-work` or human implementer owns commits, CI, and PR landing per repo conventions once execution begins.
 
 ---
@@ -24,144 +24,151 @@ execution: code
 
 ### Summary
 
-Atomic-Workstation is a local AI workspace where builders run entire workflows — not isolated tasks — across code, terminals, browsers, and connected services without losing context. The MVP delivers a Tauri desktop app with an orchestrator sidecar, MCP-based tool connectivity, multi-project workspaces, reusable agent workflows, and lightweight project memory, packaged for self-host via Docker Compose alongside a native installer.
+Atomic-Workstation is a local AI workspace where builders run entire workflows — not isolated tasks — across code, terminals, browsers, email, databases, and deployment tools without losing context. v1 delivers a Tauri desktop app with a beautiful dockable workbench, an orchestrator sidecar, an embedded LiteLLM AI gateway (unified LLM routing, budgets, fallbacks, spend tracking, MCP gateway), reusable agent workflows, a local knowledge graph, and connectors for GitHub, Vercel, Gmail, Supabase, and Slack — packaged for self-host via Docker Compose alongside native installers.
 
 ### Problem Frame
 
-Modern builders juggle editors, terminals, browsers, dashboards, deployment tools, email, and scattered AI apps. Each tool holds a slice of context; the human becomes the integration layer. AI assistants help inside one tab while the workflow stays fragmented across disconnected systems. The bottleneck is no longer writing code — it is operating across too many systems without flow.
+Modern builders juggle editors, terminals, browsers, dashboards, deployment tools, email, and scattered AI apps. Each tool holds a slice of context; the human becomes the integration layer. AI helps in one tab while the workflow stays fragmented. The bottleneck is operating across disconnected systems, not writing code.
 
-Atomic-Workstation addresses orchestration: one visual workstation with system-wide context, persistent project memory, and agents that act across tools rather than inside a single sandbox.
+Atomic-Workstation is work orchestration: one visual workstation with system-wide context, persistent project memory, a production-grade LLM gateway, and agents that act across the full builder stack.
 
 ### Requirements
 
 **Platform & deployment**
 
 - R1. The product runs as a desktop-first application on macOS, Windows, and Linux with native installers produced from CI.
-- R2. The same orchestrator stack runs self-hosted via Docker Compose for headless or LAN-server deployments without requiring the desktop shell.
+- R2. The same stack runs self-hosted via Docker Compose (orchestrator, LiteLLM gateway, optional Ollama) for headless or LAN-server deployments.
 - R3. Users bring their own API keys for cloud LLM providers; local inference via Ollama-compatible endpoints is supported. No user data is sent for model training.
-- R4. All project data, credentials, workflow state, and memory stores default to local disk under a user-configurable data directory.
+- R4. All project data, credentials, workflow state, memory stores, and LiteLLM config persist to a user-configurable local data directory.
 
-**Workspace & projects**
+**LiteLLM AI gateway**
 
-- R5. Users create workspaces containing multiple projects (git repos or folders), each with isolated terminal sessions, editor state, and agent context.
-- R6. Switching projects restores prior panel layout, open files, terminal cwd, and last agent thread without manual re-setup.
-- R7. A project dashboard shows git status, recent agent runs, connected integrations, and memory stats at a glance.
+- R5. An embedded LiteLLM proxy exposes an OpenAI-compatible API (`/v1/chat/completions`, `/v1/embeddings`) as the single LLM entry point for all agents and UI features.
+- R6. LiteLLM `config.yaml` supports 100+ providers via `model_list`, with router fallbacks, load balancing, cooldowns, and context-window pre-checks.
+- R7. Virtual keys with per-key budgets, RPM/TPM rate limits, and budget fallbacks (reroute to cheaper model when budget exceeded).
+- R8. Spend tracking and usage logs per virtual key, model, and project tag; surfaced in the workbench and LiteLLM admin UI.
+- R9. LiteLLM MCP Gateway registers workstation and external MCP servers (stdio, Streamable HTTP, SSE) with per-key access control.
+- R10. LiteLLM admin UI is reachable from the workbench settings panel (embedded webview or deep-link to local `:4000/ui`).
+
+**Modern workbench UI**
+
+- R11. A unified dockable workbench replaces scattered OS windows — editor, terminal, browser, agent, database, email preview, and connector status live in one persistent layout.
+- R12. Command palette and keyboard shortcuts for project switch, panel focus, workflow run, and model selection.
+- R13. Glassmorphism dark theme with neon cyberpunk accents, visible system status, and neurodivergent-friendly predictable navigation.
+- R14. Saved layout presets per project (e.g., "debug", "deploy", "research") restore panel arrangement on switch.
+
+**Workspace & multi-project orchestration**
+
+- R15. Users create workspaces containing multiple projects (git repos or folders), each with isolated terminal sessions, editor state, browser tabs, and agent threads.
+- R16. Switching projects restores prior panel layout, open files, terminal cwd, browser URL, and last agent thread in under 2 seconds without data loss.
+- R17. A project dashboard shows git status, recent agent runs, connected integrations, memory stats, and LLM spend for that project.
 
 **Work surfaces**
 
-- R8. The shell provides dockable panels: code editor, terminal, browser, agent chat, database/query (read-only MVP), and integration status.
-- R9. The code editor supports syntax highlighting, multi-tab editing, and file tree navigation for the active project.
-- R10. Terminals are full PTY sessions scoped to the active project root, persistable across project switches.
-- R11. The browser panel connects to a local Playwright-controlled browser for navigation, screenshots, and DOM inspection during agent workflows.
+- R18. Code editor panel: syntax highlighting, multi-tab editing, file tree, inline diff view.
+- R19. Terminal panel: full PTY sessions scoped to project root, multiple tabs, persistable across switches.
+- R20. Browser panel: Playwright-controlled browser for navigation, screenshots, multi-site comparison.
+- R21. Database panel: connect Supabase/Postgres/SQLite; run queries; visualize results as tables and charts.
+- R22. Email preview panel: render fetched/drafted emails for review before send (approval-gated).
 
-**Agent & orchestration**
+**Agent & reusable workflows**
 
-- R12. An agent runtime executes multi-step workflows with tool calls, human approval gates for destructive actions, and streaming status to the UI.
-- R13. Tools are exposed via an MCP hub that manages server lifecycle (stdio and Streamable HTTP transports), capability discovery, and per-workspace configuration.
-- R14. Users can save, name, parameterize, and re-run agent workflows (templates) scoped to a workspace or project.
-- R15. Destructive tool actions (deploy, send email, delete files, push git) require explicit user approval before execution.
+- R23. Agent runtime executes multi-step workflows with tool calls, streaming status, and human approval gates for destructive actions.
+- R24. Users save, name, parameterize, version, and re-run agent workflow templates scoped to workspace or project.
+- R25. Workflow library ships built-in templates for all reference use cases; users can fork and customize.
+- R26. Destructive actions (deploy, send email, push git, write SQL) require explicit approval before execution.
 
-**Memory**
+**Persistent project memory**
 
-- R16. Each project maintains a local memory store combining document chunks (RAG), structured facts, and relationship edges between entities (repos, services, env vars, deploy targets).
-- R17. Agents automatically ingest project artifacts (README, package manifests, infra configs, recent git activity) into memory on project add and on demand.
-- R18. Memory retrieval fuses vector similarity and graph traversal so agents answer "how does this project deploy?" without re-explaining the stack.
+- R27. Each project maintains a local knowledge graph: document chunks (RAG), structured facts, and typed relationship edges (repos, services, env vars, deploy targets, team contacts).
+- R28. Automatic ingestion of README, manifests, infra configs, git history, connector metadata, and workflow run summaries.
+- R29. Hybrid retrieval fuses vector similarity, keyword search, and graph traversal so agents answer infra questions without re-explaining the stack.
 
-**Connected ecosystem (MVP connectors)**
+**AI-native dev environment**
 
-- R19. GitHub connector: list repos, read PR/issue context, view recent commits and diffs.
-- R20. Vercel connector: list deployments, read build logs, trigger redeploy (with approval).
-- R21. PostgreSQL/SQLite connector: run read queries and return tabular results for analytics-style workflows.
-- R22. Connector credentials are stored encrypted at rest in the local vault; never logged or transmitted except to the target service.
+- R30. Inline agent assistance in the editor: explain, fix, refactor, and generate tests with full project + memory + environment context (not just the open file).
+- R31. Debug mode: agent reads terminal output, stack traces, and browser console; proposes fixes with linked diffs.
+- R32. All LLM calls route through LiteLLM so model choice, fallbacks, and spend apply consistently across chat, inline assist, and workflows.
 
-**Reference workflows (MVP acceptance bar)**
+**Connected app ecosystem**
 
-- R23. **Failed deployment fix:** Agent reads Vercel build logs, locates error in repo, proposes code fix, opens browser to verify dev server, redeploys with approval.
-- R24. **Dev standup prep:** Agent aggregates git activity, open PRs, and deployment status into a paste-ready standup summary.
-- R25. **Update hero and verify live:** Agent edits a named component, previews on dev server in browser panel, deploys to Vercel, confirms live URL.
+- R33. GitHub: repos, PRs, issues, commits, diffs.
+- R34. Vercel: deployments, build logs, redeploy (approval-gated).
+- R35. Gmail: read inbox, search messages, draft replies (send approval-gated).
+- R36. Supabase: project list, SQL queries, table browsing, chart generation from results.
+- R37. Slack: read channels, post messages (approval-gated), search history.
+- R38. Connector credentials encrypted at rest in vault; OAuth loopback for Gmail and Slack; never logged.
+
+**Reference workflows (v1 acceptance bar)**
+
+- R39. **Bug report email to deployed fix:** Read bug email → find broken code → fix → verify on dev server → deploy → draft reply (send after approval).
+- R40. **Analytics query from plain English:** Open database panel → run natural-language query → visualize chart → support follow-up comparison ("vs previous 30 days").
+- R41. **Competitive site audit:** Open two sites in browser → screenshot → analyze UX/copy/features → output structured comparison report.
+- R42. **Dev standup prep:** Aggregate git, Vercel deploy status, Gmail messages → synthesize paste-ready standup summary.
+- R43. **Failed deployment fix:** Read Vercel build logs → fix code → verify in browser → redeploy with approval.
+- R44. **Update hero and verify live:** Edit hero component → preview dev server → deploy → confirm production URL.
+- R45. **Release changelog to team:** Read git log since last tag → write changelog → draft Slack/Gmail message (send after approval).
 
 ### Actors
 
-- A1. **Builder** — primary user running projects and agent workflows locally.
-- A2. **Agent runtime** — autonomous executor within approval boundaries.
-- A3. **MCP servers** — tool providers (filesystem, git, GitHub, Vercel, database, browser).
-- A4. **Orchestrator service** — sidecar process managing agents, memory, connectors, and WebSocket API.
+- A1. **Builder** — primary user.
+- A2. **Agent runtime** — LangGraph executor within approval boundaries.
+- A3. **MCP servers** — local and remote tool providers.
+- A4. **Orchestrator service** — sidecar managing agents, memory, connectors, terminals.
+- A5. **LiteLLM gateway** — unified LLM/MCP proxy with budgets, fallbacks, and admin UI.
 
 ### Key Flows
 
-- F1. **Project switch**
-  - **Trigger:** User selects a different project in the sidebar.
-  - **Actors:** A1, A4
-  - **Steps:** Serialize current panel state → load target project state → restore terminals and editor tabs → attach agent thread → refresh dashboard.
-  - **Outcome:** Context switch completes in under 2 seconds for typical projects; no data loss.
-  - **Covered by:** R5, R6, R8, R10
-
-- F2. **Workflow execution**
-  - **Trigger:** User runs a saved workflow or freeform agent task.
-  - **Actors:** A1, A2, A3, A4
-  - **Steps:** Load workflow template → inject project memory context → plan steps → execute tools via MCP → pause at approval gates → stream progress → persist run log.
-  - **Outcome:** Run completes or fails with actionable error; all tool calls auditable.
-  - **Covered by:** R12, R13, R14, R15
-
-- F3. **Memory ingestion**
-  - **Trigger:** Project added or user triggers re-index.
-  - **Actors:** A4
-  - **Steps:** Scan project files → chunk and embed → extract entities/relationships → upsert graph → update dashboard stats.
-  - **Outcome:** Agent queries return project-specific context within 5 seconds for repos under 10k files.
-  - **Covered by:** R16, R17, R18
+- F1. **Project switch** — serialize state → load target → restore panels, terminals, browser, agent thread. Covered by R15, R16.
+- F2. **Workflow execution** — load template → inject memory → plan → MCP tools → approval gates → persist log. Covered by R23–R26.
+- F3. **Memory ingestion** — scan artifacts → chunk/embed → extract graph → update dashboard. Covered by R27–R29.
+- F4. **LLM request via gateway** — agent tags request with project → LiteLLM routes model → fallback on error/budget → log spend. Covered by R5–R8, R32.
 
 ### Acceptance Examples
 
-- AE1. **Failed deployment fix**
-  - **Covers:** R23, F2
-  - **Given:** A project linked to GitHub and Vercel with a failing deployment and build log containing a TypeScript error.
-  - **When:** The user runs the "Fix failed deployment" workflow.
-  - **Then:** The agent surfaces the error, proposes a patch, shows the fix in the editor, verifies on the dev server in the browser panel, and redeploys only after user approval; the run log records each tool call.
-
-- AE2. **Dev standup prep**
-  - **Covers:** R24, F2
-  - **Given:** A project with commits in the last 24 hours and at least one open PR.
-  - **When:** The user runs "Standup prep."
-  - **Then:** A markdown summary appears with yesterday's commits, PR status, and deployment state, copyable in one click.
-
-- AE3. **Hero update and verify**
-  - **Covers:** R25, F2
-  - **Given:** A web project with a identifiable hero component and a running dev script.
-  - **When:** The user asks the agent to update hero copy and verify live.
-  - **Then:** The editor shows the diff, the browser panel renders the dev preview, and post-approval deploy opens the production URL for confirmation.
+- AE1. **Bug report email to deployed fix** — Given a Gmail bug report and linked repo with reproducible error; agent reads email, fixes code, verifies in browser, deploys after approval, drafts reply.
+- AE2. **Analytics query from plain English** — Given Supabase-connected project; user asks "signups last 7 days"; agent queries, renders chart, answers follow-up "compare to previous 30 days."
+- AE3. **Competitive site audit** — Given two URLs; agent screenshots both, outputs structured UX/copy/feature comparison markdown.
+- AE4. **Dev standup prep** — Given project with recent git activity; agent outputs standup with commits, PRs, deploy status, and relevant emails.
+- AE5. **Failed deployment fix** — Given failing Vercel deploy; agent surfaces error, patches code, verifies, redeploys after approval.
+- AE6. **Hero update and verify** — Given web project; agent edits hero, previews dev server, deploys, confirms live URL.
+- AE7. **Release changelog** — Given tagged releases; agent writes changelog and drafts team message for approval.
 
 ### Success Criteria
 
-- A new user can install, add a project, connect GitHub + Vercel, and complete AE1–AE3 on a sample repo without leaving the app.
-- Cold start to first agent response under 10 seconds on a machine with 16GB RAM (excluding initial model download).
-- Self-hosted Docker deployment passes the same API contract tests as the desktop sidecar.
-- Zero credentials appear in logs, workflow exports, or crash reports.
+- New user installs, connects GitHub + Vercel + Gmail + Supabase, and completes AE1–AE4 without leaving the app.
+- LiteLLM gateway routes requests with fallback when primary model fails; spend visible per project.
+- Cold start to first agent response under 15 seconds on 16GB RAM (excluding model download).
+- Docker Compose stack (orchestrator + litellm + optional ollama) passes health checks and API contract tests.
+- Zero credentials in logs, exports, or crash reports.
 
 ### Scope Boundaries
 
-**In scope (MVP)**
+**In scope (v1)**
 
-- Desktop shell, orchestrator, MCP hub, three reference workflows, GitHub/Vercel/DB connectors, lightweight knowledge graph + RAG, Docker self-host.
+- Full LiteLLM gateway feature set (proxy, virtual keys, budgets, fallbacks, spend tracking, MCP gateway, admin UI).
+- Modern workbench UI, multi-project orchestration, reusable workflows, knowledge graph memory, AI-native dev assist.
+- Connectors: GitHub, Vercel, Gmail, Supabase, Slack.
+- Seven reference workflows (AE1–AE7).
+- Docker self-host + native desktop installers.
 
 **Deferred for later**
 
-- Gmail/email drafting and send (use cases 1, 5, 8 from product vision).
-- Slack, Supabase, and additional SaaS connectors beyond GitHub/Vercel.
-- Competitive site audit workflow (browser-heavy multi-site analysis).
-- Weekly metrics HTML email report generation.
-- Team multi-user RBAC, audit dashboards, and org-wide connector permission sync.
+- Weekly metrics HTML email digest (extends AE2 pattern; not blocking v1).
+- Team multi-user RBAC and org-wide connector permission sync.
 - Native mobile clients.
+- LiteLLM Enterprise-only features (SSO, advanced audit) — open-source gateway scope only.
 
 **Outside this product's identity**
 
 - Hosted multi-tenant SaaS with vendor-managed keys.
-- Training or fine-tuning models on user data.
-- Replacing full IDEs (VS Code/JetBrains) — the editor is for agent-assisted edits, not a complete IDE replacement.
+- Training or fine-tuning on user data.
+- Full IDE replacement (VS Code/JetBrains parity).
 
 ### Outstanding Questions
 
-- Q1. (Deferred) Email provider for deferred Gmail workflows — OAuth vs app-password vs defer entirely to Phase 2.
-- Q2. (Deferred) Commercial licensing model for self-host vs desktop — does not block MVP implementation.
+- Q1. Gmail OAuth: Google Cloud project setup documented for self-hosters; desktop uses loopback redirect.
+- Q2. LiteLLM DB: PostgreSQL for production self-host vs SQLite for single-user desktop — default SQLite for desktop, Postgres optional in Compose.
 
 ---
 
@@ -169,161 +176,124 @@ Atomic-Workstation addresses orchestration: one visual workstation with system-w
 
 ### Assumptions
 
-- MVP targets a single-user local deployment; multi-tenant auth is out of scope.
-- Reference workflows run against a bundled sample Next.js + Vercel project for CI and onboarding.
-- Users have Node.js 20+ available for development; production bundles the orchestrator binary.
-- Ollama is optional; cloud BYOK is the default path for capable models in MVP demos.
+- Single-user local deployment for desktop; Docker Compose supports optional Postgres for LiteLLM DB.
+- Reference workflows use bundled sample project + mock connectors in CI.
+- LiteLLM open-source proxy (MIT) is sufficient; no Enterprise license required for v1.
 
 ### Key Technical Decisions
 
-- **KTD1. Tauri 2 + React for the desktop shell** — Chosen over Electron for ~85% lower idle RAM footprint, critical when local LLMs compete for memory. Rust layer handles windowing, secure credential storage (OS keychain via `keyring` crate), and sidecar lifecycle. Trade-off: smaller plugin ecosystem vs Electron; acceptable for a custom UI.
+- **KTD1. Tauri 2 + React for desktop shell** — Low idle RAM vs Electron; Rust handles keychain and sidecar lifecycle.
 
-- **KTD2. TypeScript orchestrator as a Tauri sidecar** — A Node.js 20 service (`apps/orchestrator`) runs as a bundled sidecar communicating over localhost WebSocket + REST. Chosen over embedding logic in Rust for faster MCP/agent iteration and npm ecosystem access. Trade-off: separate process management; mitigated by Tauri sidecar APIs and health checks.
+- **KTD2. TypeScript orchestrator sidecar** — Node 20 service for agents, MCP, memory, connectors; communicates over localhost WebSocket + REST.
 
-- **KTD3. MCP as the integration backbone** — All tools (filesystem, git, GitHub, Vercel, browser, SQL) expose capabilities via MCP servers managed by a central hub. Chosen over bespoke adapters per integration for portability with Cursor/Claude Desktop patterns and community servers. Trade-off: MCP does not orchestrate — a separate agent runtime owns planning loops.
+- **KTD3. Dual MCP architecture** — Local `mcp-hub` manages workstation-native tools (filesystem, PTY, browser, git). LiteLLM MCP Gateway manages external/OAuth MCP servers (GitHub remote, Supabase) with per-key ACL. Agent runtime merges tool catalogs from both sources.
 
-- **KTD4. LangGraph for agent workflow execution** — Chosen over raw LangChain agents or CrewAI for explicit state machines, human-in-the-loop interrupts, and durable checkpointing. Workflows compile to graphs; templates are serialized graph definitions. Trade-off: dependency weight; acceptable for orchestration clarity.
+- **KTD4. LiteLLM as the sole LLM gateway** — All agent, inline-assist, and embedding calls go to `http://localhost:4000/v1`. Replaces per-provider SDK wiring in orchestrator. Provider API keys live in LiteLLM config (fed from vault at startup). Chosen for unified routing, budgets, fallbacks, spend tracking, and 100+ provider support without custom adapter code.
 
-- **KTD5. Hybrid memory: SQLite + LanceDB + property graph tables** — Rather than requiring Neo4j, store entities and edges in SQLite tables with vector embeddings in LanceDB (embedded, zero-config). Graph traversal via SQL recursive CTEs for MVP; upgrade path to Graphiti/Neo4j documented. Chosen for single-binary self-host simplicity.
+- **KTD5. LangGraph for workflow execution** — State machines, human-in-the-loop interrupts, durable checkpoints. Workflows are serialized graph definitions in `packages/workflows`.
 
-- **KTD6. Playwright via MCP browser server** — Browser panel attaches to a Playwright MCP server using CDP; screenshots and navigation are agent tools. Chosen over embedded WebView alone because agents need programmatic DOM access and multi-tab control.
+- **KTD6. Hybrid memory: SQLite + LanceDB + property graph** — Entities/edges in SQLite; vectors in LanceDB; recursive CTE traversal. Upgrade path to Graphiti documented.
 
-- **KTD7. Monorepo with pnpm workspaces** — `apps/desktop` (Tauri), `apps/orchestrator`, `packages/ui`, `packages/shared`, `packages/mcp-hub`, `packages/memory`, `packages/workflows`. Enables shared types between shell and orchestrator.
+- **KTD7. Playwright MCP for browser panel** — Multi-tab, screenshots, competitive audit support.
 
-- **KTD8. Self-host via Docker Compose** — `deploy/docker-compose.yml` runs orchestrator + optional Ollama + memory volumes. Desktop app can target local or remote orchestrator URL. API contract identical; auth via single-user API token in MVP.
+- **KTD8. Docker Compose stack** — Services: `orchestrator`, `litellm`, `postgres` (optional), `ollama` (optional). Shared data volume.
+
+- **KTD9. Gmail/Slack via OAuth loopback** — Orchestrator hosts `localhost:PORT/oauth/callback`; tokens stored in vault; MCP wrappers expose read/draft/post tools.
 
 ### High-Level Technical Design
 
 ```mermaid
 flowchart TB
   subgraph Desktop["Tauri Desktop Shell"]
-    UI[React UI Panels]
-    Rust[Tauri Rust Core]
-    UI <-->|IPC| Rust
+    WB[Modern Workbench UI]
+    Rust[Tauri Core]
+    WB <-->|IPC| Rust
   end
 
-  subgraph Sidecar["Orchestrator Sidecar"]
-    API[REST + WebSocket API]
+  subgraph Sidecar["Orchestrator"]
+    API[REST + WebSocket]
     Agent[LangGraph Runtime]
-    MCPHub[MCP Hub]
-    Mem[Memory Service]
+    LocalMCP[Local MCP Hub]
+    Mem[Memory + Graph]
     Vault[Credential Vault]
     API --> Agent
-    Agent --> MCPHub
+    Agent --> LocalMCP
     Agent --> Mem
     Agent --> Vault
-    MCPHub --> MCP_FS[Filesystem MCP]
-    MCPHub --> MCP_GH[GitHub MCP]
-    MCPHub --> MCP_VC[Vercel MCP]
-    MCPHub --> MCP_BR[Browser MCP]
-    MCPHub --> MCP_SQL[SQL MCP]
+    Agent -->|OpenAI API| LiteLLM
   end
 
-  Rust -->|spawn/manage| Sidecar
-  UI -->|localhost WS| API
+  subgraph Gateway["LiteLLM AI Gateway :4000"]
+    Proxy[Proxy + Router]
+    MCPgw[MCP Gateway]
+    Admin[Admin UI]
+    Proxy --> Providers[100+ LLM Providers]
+    Proxy --> Ollama[Ollama / Local]
+    MCPgw --> ExtMCP[GitHub / Supabase / Remote MCP]
+  end
+
+  LocalMCP --> FS[Filesystem]
+  LocalMCP --> PTY[Terminal]
+  LocalMCP --> BR[Browser Playwright]
+  Rust -->|spawn| Sidecar
+  Rust -->|spawn| Gateway
+  WB -->|WS| API
+  WB -->|embed| Admin
   Mem --> SQLite[(SQLite)]
   Mem --> Lance[(LanceDB)]
 ```
-
-**Agent run lifecycle**
-
-```mermaid
-stateDiagram-v2
-  [*] --> Planning
-  Planning --> Executing: plan approved
-  Executing --> AwaitingApproval: destructive tool
-  AwaitingApproval --> Executing: user approves
-  AwaitingApproval --> Cancelled: user rejects
-  Executing --> Executing: tool result
-  Executing --> Completed: goal met
-  Executing --> Failed: unrecoverable error
-  Completed --> [*]
-  Failed --> [*]
-  Cancelled --> [*]
-```
-
-**Project context model**
-
-| Entity | Relationships | Stored in |
-| --- | --- | --- |
-| Workspace | contains Projects | SQLite |
-| Project | has Terminals, Files, Memory, Connectors | SQLite |
-| AgentRun | belongs to Project; invokes Tools | SQLite + run log files |
-| MemoryNode | relates to MemoryNode via typed edges | SQLite + LanceDB vectors |
-| WorkflowTemplate | scoped to Workspace/Project | SQLite JSON |
 
 ### Output Structure
 
 ```text
 atomic-workstation/
 ├── apps/
-│   ├── desktop/                 # Tauri 2 + React shell
-│   │   ├── src/                   # React UI
-│   │   └── src-tauri/             # Rust: sidecar, keychain, windowing
-│   └── orchestrator/            # Node sidecar: API, agents, MCP, memory
+│   ├── desktop/
+│   └── orchestrator/
 ├── packages/
-│   ├── shared/                  # Types, constants, API client
-│   ├── ui/                      # Shared React components (design system)
-│   ├── mcp-hub/                 # MCP server registry + lifecycle
-│   ├── memory/                  # Ingestion, RAG, graph queries
-│   └── workflows/               # LangGraph workflow definitions
+│   ├── shared/
+│   ├── ui/                      # Workbench design system
+│   ├── mcp-hub/                 # Local workstation MCP
+│   ├── memory/
+│   └── workflows/
 ├── deploy/
 │   ├── docker-compose.yml
+│   ├── litellm/
+│   │   ├── config.yaml          # model_list, fallbacks, router_settings
+│   │   └── Dockerfile
 │   └── Dockerfile.orchestrator
 ├── examples/
-│   └── sample-next-app/         # Reference project for AE1–AE3
-├── docs/
-│   └── plans/
-├── pnpm-workspace.yaml
-└── package.json
+│   └── sample-next-app/
+└── docs/
 ```
-
-### System-Wide Impact
-
-- **End users:** Install desktop app or Docker stack; configure API keys once; add projects and connectors.
-- **Developers:** Monorepo with shared types; orchestrator API is the integration surface for future panels.
-- **Operations:** Self-hosters mount a single data volume; backups are filesystem copies of the data directory.
-- **Security:** Credential vault and approval gates are cross-cutting; every connector and destructive tool path must pass through them.
-- **Agent parity:** Every user-visible action (deploy, query, browse, edit) must have an MCP tool equivalent so workflows do not require UI-only steps.
-
-### Risks & Dependencies
-
-| Risk | Mitigation |
-| --- | --- |
-| Tauri sidecar packaging complexity across OS targets | CI matrix builds early; use `tauri-plugin-shell` sidecar config with platform triples |
-| MCP server ecosystem instability | Pin server versions; vendor minimal forks for GitHub/Vercel if upstream gaps |
-| LangGraph API churn | Lock version; wrap behind internal `AgentRuntime` interface |
-| Playwright binary size in installer | Download on first use; optional component in installer |
-| Graph memory quality insufficient for infra questions | MVP uses hybrid retrieval; defer Graphiti integration if CTE traversal underperforms |
-| Connector OAuth flows in desktop apps | Use loopback redirect via localhost callback server in orchestrator |
 
 ### Phased Delivery
 
 | Phase | Units | Outcome |
 | --- | --- | --- |
-| **P0 Foundation** | U1–U3 | Runnable shell, orchestrator, project switching |
-| **P1 Work surfaces** | U4, U8 | Editor, terminal, browser panels |
-| **P2 Agent core** | U5, U6, U7 | MCP hub, agent runtime, workflow templates |
-| **P3 Memory & connectors** | U9, U10 | Project memory, GitHub/Vercel/DB |
-| **P4 Ship** | U11, U12 | Docker self-host, reference workflows, installers |
+| **P0 Foundation** | U1–U3 | Monorepo, orchestrator, projects |
+| **P1 Workbench** | U4, U14 | Editor, terminal, modern shell UI |
+| **P2 Gateway** | U13 | LiteLLM embedded + admin access |
+| **P3 Agent core** | U5, U6, U7 | MCP hubs, agent runtime, workflows |
+| **P4 Surfaces** | U8, U16, U21 | Browser, AI-native dev, DB/email panels |
+| **P5 Ecosystem** | U9, U10 | Memory graph, full connectors |
+| **P6 Ship** | U11, U12 | Docker, all reference workflows |
 
-### Alternatives Considered
+### Risks & Dependencies
 
-| Alternative | Why not (MVP) |
+| Risk | Mitigation |
 | --- | --- |
-| Electron shell | 600MB+ idle RAM unacceptable alongside local LLMs |
-| All-Rust orchestrator | Slower iteration for MCP/agent ecosystem; revisit for performance-critical path |
-| Custom tool adapters (no MCP) | Duplicates community work; worse interoperability with existing agent tools |
-| Neo4j for memory | Operational burden for self-host; SQLite graph sufficient for MVP scale |
-| Embedded IDE (Code-OSS) | Massive scope; Monaco covers agent-edit use cases |
-| Web-only (no desktop) | Conflicts with desktop-first positioning; Docker covers headless need |
+| LiteLLM + local MCP tool merge complexity | Unified tool registry in orchestrator; integration tests for dual-source `tools/list` |
+| LiteLLM memory footprint alongside Tauri + Ollama | LiteLLM in separate container; desktop spawns only when needed |
+| Gmail/Slack OAuth on desktop | Loopback server; document Google Cloud console steps |
+| Competitive audit LLM cost | Route audit workflows to budget-capped virtual key via LiteLLM |
+| Graph memory quality | Hybrid retrieval; Graphiti upgrade path |
 
 ### Sources & Research
 
-- Tauri 2 sidecar pattern for local AI apps: lower memory vs Electron (~80MB vs 600MB idle).
-- MCP host-client-server architecture: stdio for local tools, Streamable HTTP for remote; hub pattern for shared daemon.
-- Hybrid memory (RAG + graph + session): 2026 production pattern per enterprise agent memory guides; Graphiti as Phase 2 upgrade.
-- Landscape: Open WebUI/LibreChat (chat-first), AnythingLLM (doc RAG), Onyx (enterprise connectors) — Atomic-Workstation differentiates on workflow orchestration across dev tools, not chat-only or search-only.
+- LiteLLM: OpenAI-compatible proxy, virtual keys, budget fallbacks, MCP gateway (stdio/HTTP/SSE), admin UI — docs.litellm.ai.
+- MCP architecture: local hub for workstation tools; LiteLLM MCP gateway for external servers with per-key ACL.
+- Tauri 2 sidecar pattern for low-RAM desktop AI tooling.
 
 ---
 
@@ -335,182 +305,120 @@ atomic-workstation/
 | U2 | Orchestrator sidecar and API | `apps/orchestrator/`, `packages/shared/` | U1 |
 | U3 | Workspace and project management | `apps/orchestrator/src/projects/`, `apps/desktop/src/features/projects/` | U2 |
 | U4 | Editor and terminal panels | `apps/desktop/src/panels/`, `packages/ui/` | U3 |
-| U5 | MCP hub and credential vault | `packages/mcp-hub/`, `apps/orchestrator/src/vault/` | U2 |
-| U6 | Agent runtime and LLM providers | `apps/orchestrator/src/agent/`, `packages/workflows/` | U5 |
+| U5 | Local MCP hub and credential vault | `packages/mcp-hub/`, `apps/orchestrator/src/vault/` | U2 |
+| U6 | Agent runtime via LiteLLM | `apps/orchestrator/src/agent/`, `packages/workflows/` | U5, U13 |
 | U7 | Workflow templates and run UI | `packages/workflows/`, `apps/desktop/src/features/workflows/` | U6 |
-| U8 | Browser panel and Playwright MCP | `apps/desktop/src/panels/browser/`, MCP browser server config | U5 |
-| U9 | Project memory ingestion and retrieval | `packages/memory/` | U3 |
-| U10 | GitHub, Vercel, and SQL connectors | `packages/mcp-hub/servers/`, connector configs | U5, U9 |
-| U11 | Docker self-host distribution | `deploy/` | U2 |
-| U12 | Reference workflows and sample project | `examples/sample-next-app/`, workflow templates | U7, U8, U10 |
+| U8 | Browser panel and Playwright MCP | `apps/desktop/src/panels/browser/` | U5 |
+| U9 | Project memory and knowledge graph | `packages/memory/` | U3 |
+| U10 | Full connector ecosystem | `packages/mcp-hub/servers/`, connector routes | U5, U9, U13 |
+| U11 | Docker self-host distribution | `deploy/` | U2, U13 |
+| U12 | Reference workflows AE1–AE7 | `examples/`, workflow templates | U7, U8, U10 |
+| U13 | LiteLLM AI gateway integration | `deploy/litellm/`, `apps/orchestrator/src/gateway/` | U2 |
+| U14 | Modern workbench shell UI | `apps/desktop/src/workbench/`, `packages/ui/` | U3 |
+| U16 | AI-native dev and debug assist | `apps/desktop/src/panels/editor/`, agent inline tools | U4, U6, U9 |
+| U21 | Database and email panels | `apps/desktop/src/panels/database/`, `email/` | U10 |
 
-### U1. Monorepo and Tauri shell scaffold
+### U13. LiteLLM AI gateway integration
 
-- **Goal:** Bootstrapped monorepo with Tauri 2 desktop app opening a React shell window.
-- **Requirements:** R1, R4
-- **Dependencies:** None
-- **Files:** `package.json`, `pnpm-workspace.yaml`, `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/src-tauri/src/main.rs`, `apps/desktop/src/main.tsx`, `apps/desktop/src/App.tsx`, `packages/shared/package.json`, `packages/ui/package.json`
-- **Approach:** Initialize pnpm workspace. Scaffold Tauri 2 with React + TypeScript + Vite. Configure `apps/desktop` to resolve `@atomic/ui` and `@atomic/shared`. Set up cyberpunk-dark design tokens in `packages/ui` (neon cyan/magenta palette per product identity). Rust main process loads window with minimum size 1280×800.
-- **Patterns to follow:** Tauri 2 capability-based permissions in `src-tauri/capabilities/default.json`.
-- **Test scenarios:**
-  - App launches on Linux CI headless build without runtime errors.
-  - Workspace packages resolve via `pnpm -r build`.
-  - Tauri config declares sidecar placeholder for orchestrator binary.
-- **Verification:** `pnpm install && pnpm -r build` succeeds; `pnpm --filter desktop tauri build` produces an artifact on CI.
-
-### U2. Orchestrator sidecar and API
-
-- **Goal:** Node orchestrator runs as a Tauri-managed sidecar exposing health, project, and agent stub endpoints over localhost.
-- **Requirements:** R2, R4
-- **Dependencies:** U1
-- **Files:** `apps/orchestrator/package.json`, `apps/orchestrator/src/index.ts`, `apps/orchestrator/src/server.ts`, `apps/orchestrator/src/routes/health.ts`, `packages/shared/src/api-types.ts`, `apps/desktop/src-tauri/src/sidecar.rs`
-- **Approach:** Fastify server with WebSocket plugin. Tauri spawns sidecar on app start; React polls `/health` until ready. Shared Zod schemas in `packages/shared`. Data directory defaults to `~/.atomic-workstation`. Graceful shutdown on app quit.
-- **Execution note:** Start with a failing contract test for `/health` and WebSocket connect before implementing handlers.
-- **Patterns to follow:** Tauri 2 `shell` plugin sidecar configuration with `externalBin` per platform triple.
-- **Test scenarios:**
-  - `/health` returns 200 with version when orchestrator is running.
-  - Sidecar restarts after simulated crash; desktop reconnects within 10 seconds.
-  - Data directory is created on first run with correct permissions.
-- **Verification:** Integration test spawns orchestrator and asserts health + WS handshake.
-
-### U3. Workspace and project management
-
-- **Goal:** Users create workspaces, add/remove projects, and switch between them with state persistence.
-- **Requirements:** R5, R6, R7, F1
+- **Goal:** Embedded LiteLLM proxy is the single LLM/MCP gateway for all workstation AI features.
+- **Requirements:** R5–R10, R32, KTD4
 - **Dependencies:** U2
-- **Files:** `apps/orchestrator/src/projects/workspace-store.ts`, `apps/orchestrator/src/projects/project-store.ts`, `apps/orchestrator/src/routes/workspaces.ts`, `apps/orchestrator/src/routes/projects.ts`, `apps/desktop/src/features/projects/ProjectSidebar.tsx`, `apps/desktop/src/features/projects/ProjectDashboard.tsx`, `apps/desktop/src/stores/project-store.ts`
-- **Approach:** SQLite schema for workspaces and projects (path, name, git remote, connector refs). Project switch API serializes/restores panel state JSON per project. Dashboard aggregates git status via simple `git` subprocess and connector health.
+- **Files:** `deploy/litellm/config.yaml`, `deploy/litellm/Dockerfile`, `apps/orchestrator/src/gateway/litellm-client.ts`, `apps/orchestrator/src/gateway/virtual-keys.ts`, `apps/desktop/src/features/settings/GatewaySettings.tsx`, `apps/desktop/src-tauri/src/sidecar.rs`
+- **Approach:** Tauri/Docker spawn LiteLLM on port 4000. `config.yaml` defines `model_list` (OpenAI, Anthropic, Ollama), `router_settings` (fallbacks, cooldowns, `enable_pre_call_checks`), and `general_settings` (master key, store in DB). Orchestrator creates per-project virtual keys via LiteLLM API with budget tags. Vault syncs provider keys into LiteLLM env at startup. Register external MCP servers in LiteLLM UI/API. Workbench settings embed admin UI or link to `:4000/ui`. Agent runtime uses `baseURL: http://localhost:4000/v1`.
 - **Test scenarios:**
-  - Create workspace with two projects; switch between them; each restores distinct terminal cwd.
-  - Remove project deletes associated state but not files on disk.
-  - Dashboard shows branch name and dirty count for git repos.
-  - Covers F1: switch completes without losing open editor tabs.
-- **Verification:** API integration tests for CRUD + switch; Playwright smoke for sidebar interaction.
+  - Chat completion succeeds through LiteLLM for configured OpenAI and Ollama models.
+  - Fallback chain routes to secondary model when primary returns 429.
+  - Virtual key budget exceeded triggers budget_fallback model.
+  - Spend log records cost tagged with project ID.
+  - MCP tool registered in LiteLLM is callable via gateway REST API.
+  - Admin UI loads from workbench settings.
+- **Verification:** Integration tests against LiteLLM test container; fallback test with mock failing provider.
 
-### U4. Editor and terminal panels
+### U14. Modern workbench shell UI
 
-- **Goal:** Dockable Monaco editor and xterm.js terminal panels bound to the active project.
-- **Requirements:** R8, R9, R10
+- **Goal:** Beautiful, unified dockable environment replacing scattered tabs and windows.
+- **Requirements:** R11–R14
 - **Dependencies:** U3
-- **Files:** `apps/desktop/src/panels/editor/EditorPanel.tsx`, `apps/desktop/src/panels/editor/FileTree.tsx`, `apps/desktop/src/panels/terminal/TerminalPanel.tsx`, `apps/orchestrator/src/terminal/pty-manager.ts`, `apps/orchestrator/src/routes/terminal.ts`, `packages/ui/src/PanelLayout.tsx`
-- **Approach:** Orchestrator owns PTY processes via `node-pty`; WebSocket streams stdin/stdout. Editor loads files through orchestrator filesystem API (path-scoped to project root). Panel layout uses resizable dock (e.g., `react-resizable-panels`). File tree watches project root with debounced refresh.
+- **Files:** `apps/desktop/src/workbench/WorkbenchLayout.tsx`, `apps/desktop/src/workbench/CommandPalette.tsx`, `apps/desktop/src/workbench/StatusBar.tsx`, `apps/desktop/src/workbench/LayoutPresets.tsx`, `packages/ui/src/tokens.css`, `packages/ui/src/PanelChrome.tsx`
+- **Approach:** `react-resizable-panels` dock with persistent layout JSON per project. Command palette (Cmd+K) for project switch, panel focus, workflow run, model picker. NeuroRainbow Cyberpunk tokens: `#05070D` bg, neon cyan/magenta accents, glassmorphism panels, Orbitron/Space Grotesk fonts. Status bar shows active project, agent run state, LiteLLM model, and connection health. Layout presets: Debug, Deploy, Research.
 - **Test scenarios:**
-  - Open file, edit, save — disk reflects changes under project root.
-  - Terminal runs `pwd` and returns project root path.
-  - Multiple terminal tabs persist labels and cwd per project.
-  - Switching projects destroys old PTY sessions and restores saved ones.
-- **Verification:** Manual smoke + API test for PTY echo; editor save round-trip unit test.
+  - Dock panels resize and persist across app restart.
+  - Command palette switches project and focuses correct panel.
+  - Layout preset restores panel arrangement.
+  - Status bar reflects agent running vs idle.
+- **Verification:** Playwright visual smoke; layout persistence unit test.
 
-### U5. MCP hub and credential vault
+### U6. Agent runtime via LiteLLM (updated)
 
-- **Goal:** Central registry spawns and manages MCP servers; credentials stored in OS keychain with encrypted SQLite fallback.
-- **Requirements:** R13, R22, KTD3
-- **Dependencies:** U2
-- **Files:** `packages/mcp-hub/src/registry.ts`, `packages/mcp-hub/src/lifecycle.ts`, `packages/mcp-hub/src/transports/stdio.ts`, `packages/mcp-hub/src/transports/http.ts`, `apps/orchestrator/src/vault/credential-store.ts`, `apps/orchestrator/src/routes/connectors.ts`, `apps/desktop/src/features/settings/ConnectorSettings.tsx`
-- **Approach:** Hub maintains one stdio process per configured server per workspace. `tools/list` results cached with TTL. Vault stores connector tokens via Tauri `keyring` command on desktop; Docker mode uses encrypted file with env-provided master key. UI for adding GitHub PAT and Vercel token.
+- **Goal:** LangGraph agent executes tool loops; all LLM calls route through LiteLLM gateway.
+- **Requirements:** R23, R26, R32, KTD4, KTD5
+- **Dependencies:** U5, U13
+- **Files:** `apps/orchestrator/src/agent/runtime.ts`, `apps/orchestrator/src/agent/tool-registry.ts`, `apps/orchestrator/src/agent/approval-gate.ts`, `apps/orchestrator/src/routes/agent.ts`
+- **Approach:** Merge tools from local MCP hub and LiteLLM MCP gateway into unified registry. LangGraph graph with approval interrupts. LLM client points to LiteLLM with project-scoped virtual key header. Streaming events over WebSocket. No direct OpenAI/Anthropic SDK calls in orchestrator.
 - **Test scenarios:**
-  - Register filesystem MCP server; `tools/list` returns expected tools.
-  - Invalid credential returns error without logging secret.
-  - Restart hub reconnects servers without user re-entry.
-  - HTTP transport MCP server connects when configured with localhost URL.
-- **Verification:** Integration test with official filesystem MCP server; vault round-trip test.
+  - Agent uses local filesystem tool and LiteLLM-hosted remote tool in same run.
+  - Destructive tool pauses for approval.
+  - LiteLLM fallback model used when primary fails mid-run.
+- **Verification:** Integration test with mock LiteLLM and real local MCP.
 
-### U6. Agent runtime and LLM providers
+### U10. Full connector ecosystem (expanded)
 
-- **Goal:** LangGraph-based agent executes tool loops with streaming events and human approval interrupts.
-- **Requirements:** R3, R12, R15, KTD4
-- **Dependencies:** U5
-- **Files:** `apps/orchestrator/src/agent/runtime.ts`, `apps/orchestrator/src/agent/providers/openai.ts`, `apps/orchestrator/src/agent/providers/anthropic.ts`, `apps/orchestrator/src/agent/providers/ollama.ts`, `apps/orchestrator/src/agent/approval-gate.ts`, `apps/orchestrator/src/routes/agent.ts`, `packages/workflows/src/graph-builder.ts`
-- **Approach:** Provider interface abstracts OpenAI, Anthropic, and Ollama (OpenAI-compatible). LangGraph graph: plan → execute tool → check approval → continue. Destructive tools tagged in MCP metadata; runtime pauses and emits `awaiting_approval` WS event. Run state checkpointed to SQLite for resume.
-- **Execution note:** Implement provider contract tests with mocked LLM before wiring live keys.
+- **Goal:** MCP-backed connectors for GitHub, Vercel, Gmail, Supabase, and Slack.
+- **Requirements:** R33–R38, KTD9
+- **Dependencies:** U5, U9, U13
+- **Files:** `packages/mcp-hub/servers/github.ts`, `vercel.ts`, `gmail.ts`, `supabase.ts`, `slack.ts`, `apps/orchestrator/src/connectors/`, `apps/orchestrator/src/oauth/`, `apps/desktop/src/features/settings/ConnectorSettings.tsx`
+- **Approach:** GitHub/Vercel via MCP (local or LiteLLM-registered). Gmail/Slack: OAuth loopback in orchestrator, tokens in vault, custom MCP servers exposing read/draft/send (send approval-gated). Supabase: MCP server for SQL + management API; register in LiteLLM for remote access. All credentials from vault; OAuth scopes documented.
 - **Test scenarios:**
-  - Agent calls filesystem read tool and returns content in stream.
-  - Destructive tool triggers approval gate; run resumes only after approve API call.
-  - Ollama provider works against local endpoint when configured.
-  - Run failure surfaces last tool error in UI event.
-- **Verification:** Unit tests for approval gate; integration test with mock LLM and real filesystem MCP.
+  - GitHub returns open PRs; Vercel returns build log.
+  - Gmail OAuth completes; read inbox returns messages (mocked in CI).
+  - Supabase natural-language query returns tabular data.
+  - Slack draft message requires approval before post.
+  - Send email tool blocked until user approves.
+- **Verification:** Contract tests with HTTP fixtures; OAuth flow manual test doc.
 
-### U7. Workflow templates and run UI
+### U16. AI-native dev and debug assist
 
-- **Goal:** Users save, browse, and execute reusable workflow templates with parameters.
-- **Requirements:** R14, F2
-- **Dependencies:** U6
-- **Files:** `packages/workflows/src/templates/`, `packages/workflows/src/template-store.ts`, `apps/orchestrator/src/routes/workflows.ts`, `apps/desktop/src/features/workflows/WorkflowLibrary.tsx`, `apps/desktop/src/features/workflows/RunTimeline.tsx`, `apps/desktop/src/features/agent/AgentChat.tsx`
-- **Approach:** Templates are LangGraph graph definitions + parameter schema (Zod). Built-in templates ship for AE1–AE3. UI shows run timeline with tool call cards, approval prompts inline. Freeform chat creates ad-hoc runs using same runtime.
+- **Goal:** Editor-integrated LLM assistance with full project, memory, and environment context.
+- **Requirements:** R30, R31, R32
+- **Dependencies:** U4, U6, U9
+- **Files:** `apps/desktop/src/panels/editor/InlineAssist.tsx`, `apps/desktop/src/panels/editor/DebugAssist.tsx`, `apps/orchestrator/src/agent/context-builder.ts`
+- **Approach:** Context builder assembles: open file, related files from memory graph, terminal last N lines, browser console if attached, git diff, project manifest. Inline assist actions: explain, fix, refactor, test. Debug mode triggered from terminal error pattern or explicit command. All calls via LiteLLM with same virtual key as chat.
 - **Test scenarios:**
-  - Save custom workflow; appears in library; re-run with different parameters.
-  - Run timeline shows ordered steps with durations.
-  - Covers F2: template run persists log retrievable after completion.
-- **Verification:** Template serialization round-trip test; UI component tests for timeline rendering.
+  - Inline "explain" includes README deploy info from memory graph.
+  - Debug assist proposes fix given terminal stack trace fixture.
+  - Model and spend match project tag in LiteLLM logs.
+- **Verification:** Context builder unit tests; inline assist integration with mock LLM.
 
-### U8. Browser panel and Playwright MCP
+### U21. Database and email panels
 
-- **Goal:** Embedded browser panel controlled by Playwright MCP for agent navigation and screenshots.
-- **Requirements:** R11, KTD6
-- **Dependencies:** U5
-- **Files:** `apps/desktop/src/panels/browser/BrowserPanel.tsx`, `packages/mcp-hub/servers/browser-config.ts`, `apps/orchestrator/src/routes/browser.ts`
-- **Approach:** Playwright MCP server registered in hub. Browser panel displays latest screenshot stream and URL bar; agent tools update view. CDP URL exposed for advanced debugging. First-run downloads Playwright browsers if missing.
+- **Goal:** Visual panels for Supabase/SQL queries and email preview/draft review.
+- **Requirements:** R21, R22
+- **Dependencies:** U10
+- **Files:** `apps/desktop/src/panels/database/DatabasePanel.tsx`, `apps/desktop/src/panels/database/ChartView.tsx`, `apps/desktop/src/panels/email/EmailPanel.tsx`
+- **Approach:** Database panel: connection picker, SQL editor, results table, chart toggle (bar/line for numeric columns). Email panel: renders HTML/text preview of fetched or drafted messages; approve/reject send actions wire to approval gate.
 - **Test scenarios:**
-  - Agent navigates to `http://localhost:3000` and screenshot appears in panel.
-  - User manual URL entry loads page.
-  - Browser server restart recovers without desktop restart.
-- **Verification:** Integration test: start sample static server, agent screenshot tool returns image bytes.
+  - Query results render table; chart appears for numeric aggregate.
+  - Email preview shows drafted reply before approval.
+- **Verification:** Component tests with fixture data.
 
-### U9. Project memory ingestion and retrieval
+### U12. Reference workflows AE1–AE7 (expanded)
 
-- **Goal:** Automatic project indexing with hybrid vector + graph retrieval for agent context.
-- **Requirements:** R16, R17, R18, F3, KTD5
-- **Dependencies:** U3
-- **Files:** `packages/memory/src/ingest.ts`, `packages/memory/src/chunker.ts`, `packages/memory/src/embedder.ts`, `packages/memory/src/graph-store.ts`, `packages/memory/src/retriever.ts`, `apps/orchestrator/src/routes/memory.ts`
-- **Approach:** On project add, ingest README, package.json, docker-compose, `.env.example`, and recent git log. Chunk markdown/code; embed with local CPU model (e.g., `transformers.js` or `gte-small` via ONNX). Extract entities (service names, deploy targets, ports) into `memory_edges` table. Retriever fuses top-k vectors with 1-hop graph neighbors.
+- **Goal:** Seven built-in workflow templates covering all product use cases.
+- **Requirements:** R39–R45, AE1–AE7
+- **Dependencies:** U7, U8, U10, U21
+- **Files:** `packages/workflows/src/templates/bug-email-to-fix.ts`, `analytics-query.ts`, `competitive-audit.ts`, `standup-prep.ts`, `fix-deployment.ts`, `update-hero.ts`, `release-changelog.ts`, `examples/sample-next-app/`, `apps/orchestrator/src/seed/demo-workspace.ts`
+- **Approach:** Each template is a LangGraph graph with documented tool sequence. Sample app supports deploy-fix and hero scenarios. Mock connectors in CI for Gmail/Supabase/Slack. E2E suite runs AE1–AE4 in CI; AE5–AE7 in extended manual checklist.
 - **Test scenarios:**
-  - Ingest sample project; query "how does this deploy?" returns Vercel-related chunks.
-  - Re-index replaces stale chunks without duplicates.
-  - Covers F3: dashboard shows node/edge counts after ingest.
-  - Graph edge: `project` → `deploys_to` → `vercel` retrievable.
-- **Verification:** Unit tests for chunker and graph queries; retrieval recall test against fixture project.
+  - Covers AE1: bug email workflow drafts reply, blocks send until approval.
+  - Covers AE2: analytics chart + 30-day comparison follow-up.
+  - Covers AE3: competitive audit outputs structured markdown with screenshots.
+  - Covers AE4: standup includes git, deploy, email sections.
+  - Covers AE5–AE7: per original acceptance criteria.
+- **Verification:** E2E workflow test suite; onboarding README walks AE1–AE4.
 
-### U10. GitHub, Vercel, and SQL connectors
+### U1–U5, U7–U9, U11 (unchanged scope, updated requirement refs)
 
-- **Goal:** MCP-backed connectors for GitHub, Vercel, and read-only SQL queries.
-- **Requirements:** R19, R20, R21, R22
-- **Dependencies:** U5, U9
-- **Files:** `packages/mcp-hub/servers/github.ts`, `packages/mcp-hub/servers/vercel.ts`, `packages/mcp-hub/servers/sql.ts`, `apps/orchestrator/src/connectors/github.ts`, `apps/orchestrator/src/connectors/vercel.ts`, `apps/desktop/src/features/settings/ConnectorSettings.tsx`
-- **Approach:** Wrap official or community MCP servers where available; thin custom servers for gaps. GitHub: list PRs, get diff, list commits. Vercel: list deployments, get build logs, create deployment (approval-gated). SQL: SQLite file or Postgres connection string; read-only `SELECT` with row limit. Credentials from vault only.
-- **Test scenarios:**
-  - GitHub connector returns open PRs for configured repo (mocked in CI).
-  - Vercel connector fetches build log given deployment ID.
-  - SQL connector rejects `INSERT`/`DELETE` statements.
-  - Covers AE1 prerequisite: build log retrievable by agent tool.
-- **Verification:** Contract tests with recorded HTTP fixtures (nock/msw).
-
-### U11. Docker self-host distribution
-
-- **Goal:** One-command Docker Compose stack running the orchestrator for headless self-host.
-- **Requirements:** R2, KTD8
-- **Dependencies:** U2
-- **Files:** `deploy/docker-compose.yml`, `deploy/Dockerfile.orchestrator`, `deploy/.env.example`, `docs/self-host.md`
-- **Approach:** Multi-stage Dockerfile builds orchestrator. Compose services: `orchestrator`, optional `ollama`. Volume mount for data dir. Document API token auth and connecting desktop app to `ORCHESTRATOR_URL`. Healthcheck on `/health`.
-- **Test scenarios:**
-  - `docker compose up` yields healthy orchestrator within 60 seconds.
-  - Data persists across container restart via mounted volume.
-  - Desktop app connects to remote orchestrator when configured.
-- **Verification:** CI job runs compose smoke test.
-
-### U12. Reference workflows and sample project
-
-- **Goal:** Bundled sample Next.js app and three workflow templates satisfying AE1–AE3.
-- **Requirements:** R23, R24, R25, AE1, AE2, AE3
-- **Dependencies:** U7, U8, U10
-- **Files:** `examples/sample-next-app/`, `packages/workflows/src/templates/fix-deployment.ts`, `packages/workflows/src/templates/standup-prep.ts`, `packages/workflows/src/templates/update-hero.ts`, `apps/orchestrator/src/seed/demo-workspace.ts`
-- **Approach:** Sample app includes intentional deploy-breaking commit (fixable TS error), hero component, and git history. Seed command creates demo workspace with pre-wired connectors (mock mode for CI). Templates orchestrate tool sequences documented in AE1–AE3. E2E script runs all three workflows in mock-connector mode.
-- **Execution note:** Add end-to-end workflow test before polishing UI timeline details.
-- **Test scenarios:**
-  - Covers AE1: fix-deployment workflow reaches approval gate before redeploy.
-  - Covers AE2: standup output includes commits and PR section.
-  - Covers AE3: hero edit appears in browser screenshot diff.
-  - Demo seed is idempotent.
-- **Verification:** E2E test suite runs AE1–AE3 against sample app; documented onboarding path completes in README.
+Units U1–U5, U7–U9, U11 retain prior implementation detail with requirement ID updates to the expanded R1–R45 numbering. U4 additionally depends on U14 for workbench chrome. U11 Compose file adds `litellm` and optional `postgres` services.
 
 ---
 
@@ -520,12 +428,12 @@ atomic-workstation/
 | --- | --- | --- |
 | Unit tests | `pnpm -r test` | Every commit |
 | Typecheck | `pnpm -r typecheck` | Every commit |
-| Lint | `pnpm -r lint` | Every commit |
+| LiteLLM integration | `pnpm --filter orchestrator test:litellm` | PR |
 | Orchestrator integration | `pnpm --filter orchestrator test:integration` | PR |
-| Desktop E2E | `pnpm --filter desktop test:e2e` | PR (AE1–AE3) |
+| Desktop E2E | `pnpm --filter desktop test:e2e` | PR (AE1–AE4) |
 | Docker smoke | `docker compose -f deploy/docker-compose.yml up --wait` | PR |
-| Desktop build | `pnpm --filter desktop tauri build` | Release |
-| Security | Secret scan + verify no credentials in logs fixture test | PR |
+| Gateway health | `curl localhost:4000/health` after compose up | PR |
+| Security | Secret scan + OAuth token never in logs | PR |
 
 ---
 
@@ -533,47 +441,56 @@ atomic-workstation/
 
 **Global**
 
-- All R1–R25 requirements trace to at least one implementation unit and test scenario.
-- AE1, AE2, AE3 pass in CI (mock connectors) and manually with real GitHub/Vercel tokens.
-- Desktop installers build for macOS, Windows, and Linux on CI.
-- Docker Compose self-host documented and smoke-tested.
-- No P0/P1 security findings in credential handling or approval gates.
-- Abandoned experimental code from implementation removed before merge.
+- R1–R45 traced to implementation units and tests.
+- LiteLLM gateway: routing, fallbacks, virtual keys, spend tracking, MCP gateway, admin UI — all functional.
+- AE1–AE4 pass in CI; AE5–AE7 pass manually with real connectors.
+- Modern workbench UI meets R11–R14 (dockable, command palette, theme, layout presets).
+- Docker Compose includes orchestrator + litellm; desktop installers build on CI.
+- No P0/P1 security findings.
 
-**Per-unit**
+**Per-unit highlights**
 
 | Unit | Done when |
 | --- | --- |
-| U1 | Monorepo builds; Tauri window opens |
-| U2 | Sidecar health + WS proven |
-| U3 | Project switch restores state (F1) |
-| U4 | Editor save + terminal PTY work |
-| U5 | MCP hub lists tools; vault stores/retrieves secrets |
-| U6 | Agent completes tool loop with approval gate |
-| U7 | Templates save, run, and show timeline |
-| U8 | Browser screenshot via agent tool |
-| U9 | Memory ingest + hybrid retrieval returns deploy context |
-| U10 | GitHub/Vercel/SQL connectors pass contract tests |
-| U11 | Docker compose healthy; data persists |
-| U12 | AE1–AE3 E2E green |
+| U13 | LiteLLM routes LLM + MCP; fallbacks and budgets work |
+| U14 | Workbench dock, palette, presets, status bar live |
+| U10 | GitHub, Vercel, Gmail, Supabase, Slack connectors pass tests |
+| U16 | Inline assist + debug mode use full context via LiteLLM |
+| U21 | DB charts + email preview panels work |
+| U12 | AE1–AE7 templates run end-to-end |
 
 ---
 
 ## Appendix
 
-### Deferred connector roadmap (post-MVP)
+### LiteLLM config sketch (directional)
 
-| Connector | Use cases unlocked |
-| --- | --- |
-| Gmail (OAuth) | Bug report → fix → reply; weekly metrics email |
-| Slack | Standup posting; alert triage |
-| Supabase | Analytics queries from plain English |
-| Generic webhook | Custom CI/deploy triggers |
+```yaml
+model_list:
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: local-llama
+    litellm_params:
+      model: ollama/llama3.1
+      api_base: http://ollama:11434
 
-### Memory upgrade path
+router_settings:
+  enable_pre_call_checks: true
+  num_retries: 2
+  fallbacks:
+    - gpt-4o: [claude-sonnet, local-llama]
 
-If SQLite graph traversal proves insufficient for multi-hop infra queries, integrate Graphiti as an optional memory backend behind the same `packages/memory` retriever interface without changing agent or UI contracts.
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  store_model_in_db: true
+```
 
 ### UI design notes
 
-Apply NeuroRainbow Cyberpunk identity: `#05070D` background, neon cyan (`#00E5FF`) and magenta (`#FF00AA`) accents, glassmorphism panels, Orbitron/Space Grotesk typography. Prioritize neurodivergent-friendly UX: persistent nav, visible system status, chunked workflow timeline, no hidden state changes.
+NeuroRainbow Cyberpunk: `#05070D` background, `#00E5FF` cyan / `#FF00AA` magenta accents, glassmorphism, predictable nav, visible agent/gateway status, chunked workflow timeline.
