@@ -91,13 +91,14 @@ All LLM calls route through Atomic Gateway (`http://localhost:4000/v1`), not dir
 
 | Concern | FOSS SDK | License | Unit |
 | --- | --- | --- | --- |
-| OIDC | `openid-client` | MIT | U25 |
-| SAML | `@node-saml/node-saml` | MIT | U25 |
-| CI IdP fixture | Keycloak | Apache-2.0 | U25 |
+| Connector OAuth | `openid-client` PKCE | MIT | U10, U19 |
+| Local vault | `keytar` | MIT | U5, U25 |
 | GitHub REST | `@octokit/rest` | MIT | U10 |
 | Supabase | `@supabase/supabase-js` | MIT | U10 |
 | Slack | `@slack/web-api` | MIT | U10 |
 | Google APIs | `googleapis` | Apache-2.0 | U10 |
+
+**Out of scope:** OIDC/SAML SSO, SCIM, multi-user RBAC — solo inventors only.
 
 ---
 
@@ -117,6 +118,6 @@ Atomic Gateway policy layer only — no third-party AI gateway products (no Lite
 - Fallback chains, shadow A/B routing
 - Bi-temporal knowledge graph
 - Workbench UX and connector OAuth flows
-- Team/org RBAC and audit log
+- Personal audit log and per-project agent permissions
 
 These are first-party code in `apps/gateway`, `apps/orchestrator`, and `apps/desktop`.

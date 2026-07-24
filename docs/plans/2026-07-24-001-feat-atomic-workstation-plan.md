@@ -12,10 +12,11 @@ execution: code
 
 ## Goal Capsule
 
-- **Objective:** Deliver the complete Atomic-Workstation platform end-to-end — desktop and mobile clients, self-hosted Docker and Kubernetes distributions, first-party Atomic Gateway with full provider catalog and enterprise controls, modern workbench, bi-temporal knowledge graph, full connector ecosystem, team RBAC, and all eight marketing reference workflows — with zero deferred product scope.
+- **Objective:** Deliver the complete Atomic-Workstation platform end-to-end — desktop and mobile clients, self-hosted Docker and Kubernetes distributions, first-party Atomic Gateway with full provider catalog and personal spend controls, modern workbench, bi-temporal knowledge graph, full connector ecosystem, and all eight marketing reference workflows — with zero deferred product scope.
+- **Target user:** Solo inventors and vibe coders — one person shipping side projects, not enterprise teams.
 - **Authority hierarchy:** Product Contract is exhaustive; Planning Contract KTDs resolve architecture; unspecified implementation detail is left to the implementer within stated patterns.
 - **Stop conditions:** Surface blockers only for physically impossible constraints (e.g., provider revokes API entirely); do not defer scope — resolve with documented assumptions instead.
-- **Execution profile:** Ten delivery phases, ~37 implementation units. Contract-test gateway OpenAI surface first; FOSS SDK inventory (R96) enforced in CI from P0; E2E all eight workflows in CI before release.
+- **Execution profile:** Ten delivery phases, ~35 implementation units. Contract-test gateway OpenAI surface first; FOSS SDK inventory (R96) enforced in CI from P0; E2E all eight workflows in CI before release.
 - **Tail ownership:** Implementer owns commits, CI, installers, Helm charts, and mobile store submission artifacts.
 
 ---
@@ -24,7 +25,9 @@ execution: code
 
 ### Summary
 
-Atomic-Workstation is a local-first, self-hostable AI workstation for builders who operate entire workflows across code, terminals, browsers, email, databases, chat, and deployment tools in one environment. The complete platform includes: Tauri desktop + Tauri mobile apps, orchestrator sidecar, **Atomic Gateway** (first-party OpenAI-compatible AI/MCP gateway), bi-temporal project knowledge graph, reusable agent workflows with scheduling, team/org RBAC with OIDC/SAML SSO, plugin marketplace, and connectors for GitHub, Vercel, Gmail, Supabase, Slack, and generic webhooks.
+Atomic-Workstation is a local-first, self-hostable AI workstation for **solo inventors and vibe coders** who operate entire workflows across code, terminals, browsers, email, databases, chat, and deployment tools in one environment — without team admin overhead. The complete platform includes: Tauri desktop + Tauri mobile apps, orchestrator sidecar, **Atomic Gateway** (first-party OpenAI-compatible AI/MCP gateway), bi-temporal project knowledge graph, reusable agent workflows with scheduling, personal spend controls, plugin marketplace, and connectors for GitHub, Vercel, Gmail, Supabase, Slack, and generic webhooks.
+
+**Solo-first identity:** One local user per install. OS keychain / biometric unlock protects vault secrets. No org hierarchies, multi-user RBAC, or enterprise SSO — those are explicit non-goals (see Scope Boundaries).
 
 **FOSS-first AI stack:** Wherever a mature open-source AI SDK exists, we use it instead of bespoke HTTP clients or proprietary middleware. Atomic Gateway owns routing, keys, budgets, and policy — provider adapters wrap FOSS SDKs; agents and UI compose FOSS orchestration and streaming libraries on top.
 
@@ -32,7 +35,7 @@ Atomic-Workstation is a local-first, self-hostable AI workstation for builders w
 
 ### Problem Frame
 
-Builders lose flow switching between editors, terminals, browsers, dashboards, email, and scattered AI tabs. AI helps inside one surface while the workflow stays fragmented. Atomic-Workstation unifies work orchestration: system-wide context, persistent memory, native gateway, and agents that execute real cross-tool workflows locally with your keys.
+Builders lose flow switching between editors, terminals, browsers, dashboards, email, and scattered AI tabs. AI helps inside one surface while the workflow stays fragmented. Solo inventors and vibe coders juggle multiple side projects alone — they need one environment that remembers context, routes models cheaply, and runs cross-tool workflows without standing up team infrastructure. Atomic-Workstation unifies personal work orchestration: system-wide context, persistent memory, native gateway, and agents that execute real workflows locally with your keys.
 
 ### Requirements
 
@@ -57,7 +60,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R91. **Token counting** via `js-tiktoken` / `@dqbd/tiktoken`; cost tables maintained in `packages/gateway-core`.
 - R92. **Observability** via OpenTelemetry JS SDK + `prom-client`; optional self-hosted [Langfuse](https://github.com/langfuse/langfuse) (FOSS) for LLM trace UI.
 - R93. **Guardrails** integrate FOSS libraries where possible: `presidio`-style PII patterns, `redact-pii`, or `@anthropic-ai/sdk` moderation hooks — composed in guardrail plugin pipeline.
-- R94. **SSO** via `openid-client` (OIDC) and `@node-saml/node-saml` (SAML); test against Keycloak (Apache-2.0) in CI.
+- R94. **Connector OAuth** via `openid-client` PKCE for Gmail, GitHub, Vercel, Slack, and MCP servers requiring user consent.
 - R95. **Dependency governance:** `pnpm licenses` + SBOM (`@cyclonedx/cyclonedx-npm`) in CI; block copyleft licenses in runtime deps without explicit approval.
 - R96. **FOSS SDK inventory** documented in `docs/foss-ai-stack.md` and kept in sync with `package.json` via CI check.
 
@@ -97,17 +100,17 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R19. A/B traffic mirroring: shadow deployments receive duplicate requests; primary latency unaffected; shadow responses logged for comparison.
 - R20. Prompt caching passthrough for providers that support it.
 
-**Atomic Gateway — auth, teams, enterprise**
+**Atomic Gateway — auth and personal controls**
 
-- R21. Virtual keys: model allowlists, budgets, RPM/TPM, metadata tags, expiry, rotation.
-- R22. Organizations → teams → users hierarchy with role-based permissions.
-- R23. OIDC and SAML SSO for gateway admin and workstation login.
-- R24. SCIM user provisioning hooks for enterprise self-host.
-- R25. Audit log: immutable append-only record of admin actions, key usage, config changes.
+- R21. Virtual keys: per-project model allowlists, personal budgets, RPM/TPM, metadata tags, expiry, rotation — for isolating side projects and capping spend.
+- R22. Single-user local identity: one profile per install; optional app passcode or OS keychain/biometric unlock; no mandatory account server in desktop mode.
+- R23. Personal audit log: immutable append-only record of agent runs, key usage, config changes, and destructive-action approvals.
+- R24. Encrypted workspace backup/export: settings, workflow library, gateway config, and memory snapshots for machine migration.
+- R25. Per-project agent permissions: agents may only use tools, connectors, and MCP servers enabled for the active project.
 
 **Atomic Gateway — spend & observability**
 
-- R26. Per-request logging: tokens, cost, latency, key, team, project tag, cache hit, shadow flag.
+- R26. Per-request logging: tokens, cost, latency, virtual key, project tag, cache hit, shadow flag.
 - R27. Spend dashboards and export API; budget alert webhooks to Slack/email.
 - R28. OpenTelemetry traces, Prometheus metrics, Langfuse/LangSmith-compatible export.
 - R29. Secret manager backends: env, OS keychain, HashiCorp Vault, AWS Secrets Manager.
@@ -115,7 +118,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 **Atomic Gateway — MCP**
 
 - R30. MCP Gateway: stdio, Streamable HTTP, SSE transports.
-- R31. Per-key/team MCP server and tool ACL.
+- R31. Per-key/project MCP server and tool ACL.
 - R32. REST `/mcp/tools/list`, `/mcp/tools/call`; OpenAPI spec import → MCP tools.
 - R33. OAuth PKCE for MCP servers; static header and server variable support.
 
@@ -123,11 +126,11 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 
 - R34. Exact-match and semantic response cache; Redis backend in production.
 - R35. Guardrail plugin pipeline: PII redact, blocklist, regex, custom WASM/JS plugins.
-- R36. Per-key/team/model default guardrails; policy bundles.
+- R36. Per-key/project/model default guardrails; policy bundles.
 
 **Atomic Gateway — admin**
 
-- R37. Admin UI: keys, teams, models, deployments, fallbacks, shadow routes, MCP, guardrails, spend, logs, audit.
+- R37. Admin UI: keys, models, deployments, fallbacks, shadow routes, MCP, guardrails, spend, logs, audit.
 - R38. Embedded in workbench settings and available standalone at `:4000/admin`.
 
 **Modern workbench (desktop)**
@@ -177,11 +180,11 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R67. Generic webhook ingress/egress for custom CI and deploy flows.
 - R68. Credentials in vault; OAuth loopback; connector health in dashboard.
 
-**Team & collaboration**
+**Solo workspace & personal library**
 
-- R69. Multi-user workspaces with roles: owner, admin, builder, viewer.
-- R70. Shared projects, shared workflow templates, shared connector configs (scoped).
-- R71. Activity feed and run history visible to team members with permission.
+- R69. Single local user profile; all projects owned by the installer; no multi-user accounts in desktop-first mode.
+- R70. Personal workflow library: save, version, fork, parameterize, export/import locally; discover via marketplace.
+- R71. Personal activity feed: unified timeline of agent runs, spend, deploys, and workflow outcomes for the solo builder.
 
 **Reference workflows (all eight — complete acceptance bar)**
 
@@ -192,7 +195,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R76. Weekly metrics digest → query metrics → HTML report with charts → draft email with attachment.
 - R77. Failed deployment fix → Vercel logs → patch → verify → redeploy.
 - R78. Update hero → edit → dev preview → deploy → confirm live URL.
-- R79. Release changelog → git since tag → changelog → draft Slack/Gmail to team.
+- R79. Release changelog → git since tag → changelog → draft Slack/Gmail announcement.
 
 **Marketplace & extensibility**
 
@@ -206,13 +209,12 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 
 ### Actors
 
-- A1. Builder
+- A1. Solo inventor / vibe coder
 - A2. Agent runtime
 - A3. MCP servers (local + gateway)
 - A4. Orchestrator
 - A5. Atomic Gateway
-- A6. Team admin
-- A7. Mobile user (builder on phone)
+- A6. Mobile user (same person, on phone)
 
 ### Key Flows
 
@@ -220,7 +222,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - F2. Workflow execution — R50–R53
 - F3. Memory ingest + consolidate — R54–R58
 - F4. Gateway request pipeline — R7–R36
-- F5. Team invite + SSO login — R22, R23, R69
+- F5. First-run setup + BYOK — R5, R22, R68
 - F6. Scheduled weekly metrics — R52, R76
 - F7. Shadow deployment comparison — R19
 - F8. Mobile approval — R82, R53
@@ -234,11 +236,11 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - AE5. Weekly metrics HTML email digest (R76).
 - AE6. Failed deployment fix (R77).
 - AE7. Hero update and verify live (R78).
-- AE8. Release changelog to team (R79).
+- AE8. Release changelog draft to Slack/Gmail (R79).
 - AE9. Gateway provider fallback on 429 (R17).
 - AE10. Budget fallback to cheaper model (R21).
 - AE11. Shadow deployment logs comparison without affecting primary latency (R19).
-- AE12. SSO login via OIDC completes; user lands in shared team workspace (R23, R69).
+- AE12. First-run onboarding: BYOK keys stored in vault; OS keychain unlock; default models selected (R22, R68).
 - AE13. Mobile push approval unblocks deploy step (R82, F8).
 - AE14. Bi-temporal memory answers "what did deploy target before last week?" (R54).
 
@@ -248,7 +250,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - OpenAI Python/JS SDK works against gateway unchanged except `baseURL`.
 - Every provider family in R14 has at least one adapter passing contract tests.
 - Desktop + mobile + Docker + Helm all install from documented paths.
-- Multi-user team with SSO operates shared project and workflow.
+- Solo user completes first-run onboarding (AE12) and operates multiple personal projects with isolated virtual keys.
 - No third-party AI gateway dependency; no credentials in logs.
 - FOSS AI SDK inventory complete per R96; gateway adapters use `@ai-sdk/*` for all providers with published packages.
 
@@ -261,6 +263,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - Vendor-hosted multi-tenant SaaS where Atomic holds user API keys centrally.
 - Training or fine-tuning models on user data.
 - Replacing full IDE feature parity (debugger breakpoints, extension marketplace like VS Code).
+- **Team / enterprise features:** multi-user workspaces, org hierarchies, role-based access control, OIDC/SAML SSO, SCIM provisioning, shared team projects, or admin consoles for managing other users.
 
 There is no deferred product scope in this plan.
 
@@ -270,10 +273,11 @@ There is no deferred product scope in this plan.
 
 ### Assumptions
 
-- Postgres is the production datastore for gateway and orchestrator in self-host; SQLite acceptable for single-user offline desktop mode with sync option.
+- Postgres is the production datastore for gateway and orchestrator in self-host; SQLite is the default for single-user desktop mode.
 - Mobile uses Tauri 2 mobile for maximum code reuse with desktop.
 - Provider adapters ship in waves within the program but all R14 families complete before GA — no family left unimplemented.
 - Vercel AI SDK `@ai-sdk/*` packages cover most cloud providers; gaps filled with official OSS clients per R86.
+- **Solo-first:** no user-management server required for desktop; self-host Docker/K8s runs as single-tenant personal stack.
 
 ### Key Technical Decisions
 
@@ -285,7 +289,7 @@ There is no deferred product scope in this plan.
 - **KTD6.** LangGraph workflows + cron scheduler in orchestrator.
 - **KTD7.** Bi-temporal graph in Postgres + LanceDB vectors (not lightweight SQLite-only graph).
 - **KTD8.** Redis for cache, rate limits, shadow request queue in production.
-- **KTD9.** OIDC/SAML via `openid-client` + SAML library; SCIM REST endpoints.
+- **KTD9.** Local identity via OS keychain (`keytar`) + optional app passcode; connector OAuth via `openid-client` PKCE. No SSO/SAML/SCIM.
 - **KTD10.** Helm chart for K8s; Compose for single-node.
 - **KTD11. FOSS SDK composition over custom glue** (session-settled: user-directed — maximize maintained open-source AI SDKs; build only gateway policy/routing layer ourselves). Layering:
   - **Gateway adapters:** thin `ProviderAdapter` wrapper → `@ai-sdk/<provider>` → our router/budget/guardrails.
@@ -310,14 +314,14 @@ flowchart TB
     Sched[Scheduler]
     LocalMCP[MCP Hub]
     Mem[Bi-temporal Memory]
-    Teams[Team RBAC]
+    Activity[Personal Activity Feed]
     Market[Marketplace Client]
   end
 
   subgraph Gateway["Atomic Gateway"]
     Proxy[OpenAI API]
     Router[Router + Shadow]
-    Auth[Keys + SSO]
+    Auth[Keys + Vault]
     MCPgw[MCP Gateway]
     Cache[Cache]
     Adapters[Provider Plugins]
@@ -350,12 +354,12 @@ flowchart TB
 | P0 | Monorepo, orchestrator, projects, FOSS governance | U1–U3, U32 |
 | P1 | Gateway core + router | U13, U17 |
 | P2 | Provider catalog wave 1 (US labs + local) | U15 |
-| P3 | Provider catalog wave 2 (cloud + enterprise) | U23 |
-| P4 | Gateway enterprise (keys, SSO, audit, shadow) | U18, U24, U25, U26 |
+| P3 | Provider catalog wave 2 (cloud + extended) | U23 |
+| P4 | Gateway personal controls (keys, audit, shadow) | U18, U24, U25 |
 | P5 | MCP gateway, cache, guardrails, admin | U19, U22, U20 |
 | P6 | Workbench + surfaces | U4, U14, U8, U21 |
 | P7 | Memory graph + AI dev | U9, U16 |
-| P8 | Connectors + team RBAC | U10, U27 |
+| P8 | Connectors + personal activity feed | U10, U27 |
 | P9 | Workflows + scheduler + all 8 AEs | U7, U12, U28 |
 | P10 | Mobile, marketplace, K8s, ship | U29, U30, U11, U31 |
 
@@ -384,13 +388,12 @@ flowchart TB
 | U17 | Router, fallbacks, shadow mirroring | U13, U15 |
 | U18 | Virtual keys, budgets, spend, alerts | U13 |
 | U19 | MCP Gateway | U13 |
-| U20 | Gateway admin UI | U13, U18, U25 |
+| U20 | Gateway admin UI | U13, U18 |
 | U21 | Database and email panels | U10 |
 | U22 | Cache, guardrails, observability | U13 |
 | U23 | Provider adapters wave 2 (full R14 catalog) | U15 |
 | U24 | A/B shadow traffic mirroring | U17 |
-| U25 | OIDC, SAML SSO, SCIM, audit log | U13, U18 |
-| U26 | Team/org RBAC across platform | U3, U18, U25 |
+| U25 | Local auth, vault, audit log, and backup | U13, U18 |
 | U27 | Generic webhook connector | U10 |
 | U28 | Cron and event workflow triggers | U7 |
 | U29 | Plugin and template marketplace | U7, U15, U22 |
@@ -419,10 +422,10 @@ flowchart TB
 
 ### U3. Workspace, project, and scripts registry
 
-- **Goal:** CRUD workspaces/projects; script definitions; state persistence.
-- **Requirements:** R42, R43, R44
-- **Files:** `apps/orchestrator/src/projects/`, `apps/desktop/src/features/projects/`
-- **Approach:** Postgres schema; panel state JSON per project; scripts as named shell/npm commands in workspace manifest.
+- **Goal:** CRUD workspaces/projects; script definitions; state persistence; personal activity feed.
+- **Requirements:** R42, R43, R44, R69, R71
+- **Files:** `apps/orchestrator/src/projects/`, `apps/desktop/src/features/projects/`, `apps/desktop/src/features/activity/`
+- **Approach:** Postgres/SQLite schema; panel state JSON per project; scripts as named shell/npm commands in workspace manifest. Activity feed aggregates agent runs, spend, deploys from audit log + workflow history.
 - **Test scenarios:** Two projects switch without state loss; dashboard shows git branch.
 - **Verification:** API tests + Playwright switch smoke.
 
@@ -514,24 +517,15 @@ Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 - **Test scenarios:** Covers AE10; budget alert webhook fires.
 - **Verification:** Auth + spend integration tests.
 
-### U25. OIDC, SAML SSO, SCIM, audit log
+### U25. Local auth, vault, audit log, and backup
 
-- **Goal:** Enterprise identity and compliance.
-- **Requirements:** R23, R24, R25
-- **Files:** `apps/gateway/src/sso/`, `apps/orchestrator/src/sso/`, `apps/gateway/src/audit/`
-- **Approach:** Shared SSO via `openid-client` + `@node-saml/node-saml`. SCIM endpoints. Keycloak container in CI for AE12.
-- **Test scenarios:** Covers AE12 with Keycloak fixture in CI.
-- **Verification:** SSO e2e with test IdP container.
-
-### U26. Team/org RBAC across platform
-
-- **Goal:** Multi-user collaboration with permissions.
-- **Requirements:** R22, R69, R70, R71
-- **Files:** `apps/orchestrator/src/teams/`, `apps/gateway/src/teams/`
-- **Dependencies:** U3, U18, U25
-- **Approach:** Roles enforced on projects, workflows, connectors, keys. Activity feed from audit + run logs.
-- **Test scenarios:** Viewer cannot deploy; admin can rotate keys.
-- **Verification:** RBAC matrix tests.
+- **Goal:** Solo-user identity, secret protection, personal audit trail, and machine migration.
+- **Requirements:** R22, R23, R24, R25
+- **Files:** `apps/orchestrator/src/auth/`, `apps/gateway/src/audit/`, `packages/vault/`
+- **Dependencies:** U13, U18
+- **Approach:** OS keychain via `keytar`; optional app passcode and biometric unlock (mobile/desktop). Append-only audit log for agent runs, config changes, and approvals. Encrypted `.atomic-backup` export/import for settings, workflows, and gateway config. Per-project tool/connector ACL enforced at agent runtime.
+- **Test scenarios:** Covers AE12: first-run stores BYOK in vault; unlock required before connector OAuth; audit entry written on destructive approval.
+- **Verification:** Vault + audit + backup round-trip tests.
 
 ### U19. MCP Gateway
 
@@ -556,7 +550,7 @@ Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 - **Goal:** Complete admin dashboard.
 - **Requirements:** R37, R38
 - **Files:** `apps/gateway/src/admin-ui/`
-- **Approach:** All admin surfaces including shadow routes, SSO config, team management, marketplace uploads.
+- **Approach:** All admin surfaces including shadow routes, virtual keys, spend dashboards, marketplace uploads. No team/user-management screens.
 - **Test scenarios:** Full config cycle without YAML edit.
 - **Verification:** Playwright admin suite.
 
@@ -705,7 +699,7 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
   - AE5: weekly HTML metrics email draft
   - AE6: failed deploy fix
   - AE7: hero update live
-  - AE8: changelog + team message
+  - AE8: changelog + Slack/Gmail draft
 - **Verification:** `pnpm --filter desktop test:e2e --workflows=all`
 
 ### U29. Plugin and template marketplace
@@ -755,12 +749,12 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 | All providers | `pnpm --filter gateway-providers test:matrix` | PR |
 | Gateway integration | `pnpm --filter gateway test:integration` | PR |
 | Orchestrator integration | `pnpm --filter orchestrator test:integration` | PR |
-| SSO e2e | `pnpm --filter gateway test:sso` | PR |
+| Vault + audit | `pnpm --filter orchestrator test:vault` | PR |
 | Workflow e2e | `pnpm --filter desktop test:e2e --workflows=all` | PR |
 | Mobile smoke | `pnpm --filter mobile test:smoke` | PR |
 | Docker Compose | `docker compose up --wait` | PR |
 | Helm kind | `helm test atomic-workstation` | PR nightly |
-| Security | secret scan + RBAC audit + no creds in logs | PR |
+| Security | secret scan + vault audit + no creds in logs | PR |
 | FOSS inventory | `pnpm foss:check` | PR |
 | License/SBOM | `pnpm licenses:ci` + CycloneDX artifact | PR + release |
 
@@ -775,11 +769,12 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 - R84–R96 FOSS mandate satisfied: `docs/foss-ai-stack.md` current; `pnpm foss:check` green; no unapproved copyleft runtime deps.
 - All R14 provider families have shipping adapters using FOSS SDKs per R85–R86.
 - Desktop, mobile, Docker, Helm install paths documented and CI-verified.
-- Atomic Gateway: full API, all providers, SSO, teams, shadow, MCP, cache, guardrails, admin, marketplace.
+- Atomic Gateway: full API, all providers, personal keys/budgets, shadow, MCP, cache, guardrails, admin, marketplace.
 - Eight reference workflows runnable end-to-end.
 - Bi-temporal memory operational.
-- Team RBAC + SSO operational.
+- Solo local auth + vault + personal audit log operational (AE12).
 - No LiteLLM or third-party gateway code.
+- No team RBAC, SSO, or multi-user features shipped.
 - GA release artifacts published.
 
 **Per-phase exit**
@@ -791,7 +786,7 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 | P4 | AE9, AE10, AE11, AE12 pass |
 | P5 | Admin UI complete; MCP gateway live |
 | P6–P7 | Workbench + memory + dev assist live |
-| P8 | All connectors + team RBAC |
+| P8 | All connectors + personal activity feed |
 | P9 | AE1–AE8 e2e green |
 | P10 | Mobile AE13; Helm deploy; marketplace install |
 
@@ -833,11 +828,12 @@ Maintained in `docs/foss-ai-stack.md` and enforced by U32. Summary by layer:
 | Token counting | `js-tiktoken` / `@dqbd/tiktoken` | U18 |
 | Observability | `@opentelemetry/sdk-node`, `prom-client`, Langfuse (self-host) | U22 |
 | Guardrails | `redact-pii`, custom plugins | U22 |
-| SSO | `openid-client`, `@node-saml/node-saml`, Keycloak (CI fixture) | U25 |
+| Connector OAuth | `openid-client` PKCE | U10, U19, U25 |
+| Local vault | `keytar` | U5, U25 |
 | License governance | `@cyclonedx/cyclonedx-npm`, `pnpm licenses` | U32 |
 
 **Principle:** Atomic Gateway owns routing, policy, and keys — not provider HTTP. Adapters are thin wrappers over maintained FOSS SDKs (KTD11).
 
 ### Outside identity (unchanged non-goals)
 
-Hosted multi-tenant SaaS, user-data model training, full VS Code parity — these are not product goals, not deferred features.
+Hosted multi-tenant SaaS, user-data model training, full VS Code parity, **multi-user workspaces, org admin, RBAC, OIDC/SAML SSO, SCIM** — these are not product goals, not deferred features.
