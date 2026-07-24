@@ -2,7 +2,7 @@
 
 Canonical inventory for Atomic-Workstation AI/ML dependencies. Kept in sync with root `package.json` via `pnpm foss:check` (U32, R96).
 
-**Policy (R84):** Prefer OSI-approved open-source SDKs (MIT, Apache-2.0, BSD). Custom HTTP clients only when no maintained FOSS SDK exists.
+**Policy (R84):** Prefer OSI-approved open-source SDKs (MIT, Apache-2.0, BSD). REST shims and custom MCP servers: see `docs/foss-exceptions.md`.
 
 ---
 
@@ -30,7 +30,7 @@ Canonical inventory for Atomic-Workstation AI/ML dependencies. Kept in sync with
 | HuggingFace | `@huggingface/inference` | Apache-2.0 | U23 |
 | Replicate | `replicate` | MIT | U23 |
 | SageMaker | `@aws-sdk/client-sagemaker-runtime` | Apache-2.0 | U23 |
-| AI21 | `ai21` or `@ai-sdk/openai-compatible` | Apache-2.0 | U15 |
+| AI21 | `ai21` or `@ai-sdk/openai-compatible` | Verify via U32 | U15 |
 
 Enterprise providers without dedicated `@ai-sdk/*` packages use official OSS clients or `@ai-sdk/openai-compatible` with documented REST shims (U23).
 
@@ -59,7 +59,9 @@ All LLM calls route through Atomic Gateway (`http://localhost:4000/v1`), not dir
 | GitHub tools | `@modelcontextprotocol/server-github` | MIT | U10 |
 | Git tools | `@modelcontextprotocol/server-git` | MIT | U5 |
 | Postgres tools | `@modelcontextprotocol/server-postgres` | MIT | U10 |
-| OpenAPI → MCP | `openapi-mcp` (or custom generator) | MIT | U19 |
+| Vercel MCP | Custom `packages/mcp-servers/vercel` | MIT | U10 |
+| Gmail MCP | Custom `packages/mcp-servers/gmail` | MIT | U10 |
+| Slack MCP | Custom `packages/mcp-servers/slack` | MIT | U10 |
 
 ---
 
@@ -69,7 +71,8 @@ All LLM calls route through Atomic Gateway (`http://localhost:4000/v1`), not dir
 | --- | --- | --- | --- |
 | Local embeddings | `@xenova/transformers` | Apache-2.0 | U9 |
 | Vector index | `@lancedb/lancedb` | Apache-2.0 | U9 |
-| Graph store | Postgres + `pgvector` via Drizzle ORM | PostgreSQL / Apache-2.0 | U9 |
+| Graph store | PGlite (desktop) / Postgres (self-host) + `pgvector` via Drizzle | Apache-2.0 / PostgreSQL | U9 |
+| BM25 keyword search | `minisearch` | MIT | U9 |
 
 ---
 

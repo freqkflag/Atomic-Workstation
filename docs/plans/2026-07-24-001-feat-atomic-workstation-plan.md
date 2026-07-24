@@ -16,7 +16,7 @@ execution: code
 - **Target user:** Solo inventors and vibe coders — one person shipping side projects, not enterprise teams.
 - **Authority hierarchy:** Product Contract is exhaustive; Planning Contract KTDs resolve architecture; unspecified implementation detail is left to the implementer within stated patterns.
 - **Stop conditions:** Surface blockers only for physically impossible constraints (e.g., provider revokes API entirely); do not defer scope — resolve with documented assumptions instead.
-- **Execution profile:** Ten delivery phases, ~35 implementation units. Contract-test gateway OpenAI surface first; FOSS SDK inventory (R96) enforced in CI from P0; E2E all eight workflows in CI before release.
+- **Execution profile:** Ten delivery phases, **31 implementation units** (U1–U25, U27–U32; U26 removed). Sequenced via **Delivery Tiers** (T1 Solo GA → T2 Power → T3 Full); all R1–R96 ship by T3. Contract-test gateway OpenAI surface first; FOSS inventory (R96) enforced in CI from P0; E2E all eight workflows in CI before T3 release.
 - **Tail ownership:** Implementer owns commits, CI, installers, Helm charts, and mobile store submission artifacts.
 
 ---
@@ -31,7 +31,7 @@ Atomic-Workstation is a local-first, self-hostable AI workstation for **solo inv
 
 **FOSS-first AI stack:** Wherever a mature open-source AI SDK exists, we use it instead of bespoke HTTP clients or proprietary middleware. Atomic Gateway owns routing, keys, budgets, and policy — provider adapters wrap FOSS SDKs; agents and UI compose FOSS orchestration and streaming libraries on top.
 
-**Scope policy:** This plan has no "deferred for later" product features. Every capability listed in requirements ships in this program.
+**Scope policy:** No feature is deferred out of the program. Requirements R1–R96 all ship by **Tier 3 (Full)**. **Delivery Tiers** (T1–T3) sequence implementation and define milestone exit criteria — not scope cuts.
 
 ### Problem Frame
 
@@ -44,7 +44,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R1. Desktop app: macOS, Windows, Linux native installers via CI.
 - R2. Mobile companion apps: iOS and Android via Tauri 2 mobile (project switch, agent chat, workflow triggers, approvals, notifications).
 - R3. Self-host Docker Compose: orchestrator, gateway, Postgres, Redis, Ollama (optional).
-- R4. Self-host Kubernetes: Helm chart with HA gateway, orchestrator, ingress, persistent volumes.
+- R4. Self-host Kubernetes (T3): Helm chart with HA gateway, orchestrator, ingress, persistent volumes. Optional for solo users; Docker Compose (R3) is the default self-host path.
 - R5. BYOK for all cloud providers; Ollama/vLLM for local inference; no training on user data.
 - R6. All state in user-configurable data directory or mounted volumes.
 
@@ -59,45 +59,47 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R90. **Local embeddings** via `@xenova/transformers` (Transformers.js) and/or Ollama embed API; vector store in LanceDB (Apache-2.0).
 - R91. **Token counting** via `js-tiktoken` / `@dqbd/tiktoken`; cost tables maintained in `packages/gateway-core`.
 - R92. **Observability** via OpenTelemetry JS SDK + `prom-client`; optional self-hosted [Langfuse](https://github.com/langfuse/langfuse) (FOSS) for LLM trace UI.
-- R93. **Guardrails** integrate FOSS libraries where possible: `presidio`-style PII patterns, `redact-pii`, or `@anthropic-ai/sdk` moderation hooks — composed in guardrail plugin pipeline.
+- R93. **Guardrails** use FOSS libraries only: `redact-pii`, regex blocklists, custom JS/WASM plugins. No proprietary moderation SDKs in the default pipeline.
 - R94. **Connector OAuth** via `openid-client` PKCE for Gmail, GitHub, Vercel, Slack, and MCP servers requiring user consent.
 - R95. **Dependency governance:** `pnpm licenses` + SBOM (`@cyclonedx/cyclonedx-npm`) in CI; block copyleft licenses in runtime deps without explicit approval.
-- R96. **FOSS SDK inventory** documented in `docs/foss-ai-stack.md` and kept in sync with `package.json` via CI check.
+- R96. **FOSS SDK inventory** in `docs/foss-ai-stack.md`; REST-shim exceptions in `docs/foss-exceptions.md`; both kept in sync via `pnpm foss:check` CI.
 
 **Atomic Gateway — API surface**
 
 - R7. OpenAI-compatible: `/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, `/v1/images/generations`, `/v1/audio/transcriptions`, `/v1/audio/speech`, `/v1/models`, SSE streaming.
 - R8. Drop-in for OpenAI SDK clients via `baseURL` only.
 - R9. `gateway.yaml` + runtime CRUD API; hot reload without restart.
-- R10. Master key + virtual key Bearer auth; JWT for service accounts.
+- R10. Master key + virtual key Bearer auth; signed JWT for **service-to-service** tokens (orchestrator ↔ gateway only; not multi-user accounts).
 - R11. Pass-through endpoints for provider-native APIs.
 - R12. Health, readiness, per-provider status.
 
 **Atomic Gateway — providers (full catalog)**
 
 - R13. Plugin `ProviderAdapter` interface: chat, embed, stream, image, audio, token count, cost estimate.
-- R14. Ship adapters for all major providers in one release:
+- R14. Ship adapters for all major providers by Tier 3. Families and tiers:
 
-| Family | Providers |
-| --- | --- |
-| US labs | OpenAI, Anthropic, xAI, Perplexity, Cohere, AI21 |
-| Google | Gemini API, Vertex AI |
-| Microsoft | Azure OpenAI, Azure AI Inference |
-| Amazon | Bedrock, SageMaker endpoints |
-| Open aggregators | OpenRouter, Together, Fireworks, Anyscale, DeepSeek, Groq, Mistral |
-| Local/self-host | Ollama, vLLM, LM Studio, llama.cpp server, LocalAI |
-| Cloud ML | Replicate, HuggingFace Inference, Baseten, Modal |
-| Enterprise | Snowflake Cortex, Databricks Foundation Models, Nvidia NIM |
-| Other | Cloudflare Workers AI, GitHub Models, Aleph Alpha, Watsonx (IBM) |
+| Family | Providers | Tier |
+| --- | --- | --- |
+| US labs | OpenAI, Anthropic, xAI, Perplexity, Cohere, AI21 | T1 (core) / T3 (AI21) |
+| Google | Gemini API, Vertex AI | T2 / T3 |
+| Microsoft | Azure OpenAI, Azure AI Inference | T3 |
+| Amazon | Bedrock, SageMaker endpoints | T2 / T3 |
+| Open aggregators | OpenRouter, Together, Fireworks, Anyscale, DeepSeek, Groq, Mistral | T1 (subset) / T3 (full) |
+| Local/self-host | Ollama, vLLM, LM Studio, llama.cpp server, LocalAI | T1 |
+| Cloud ML | Replicate, HuggingFace Inference, Baseten, Modal | T2 / T3 |
+| Enterprise | Snowflake Cortex, Databricks Foundation Models, Nvidia NIM | T3 (power-user) |
+| Other | Cloudflare Workers AI, GitHub Models, Aleph Alpha, Watsonx (IBM) | T2 / T3 |
 
-- R15. Adapter marketplace: signed plugin bundles installable from workbench; community adapter submission flow with schema validation.
-- R16. Model registry: alias → multiple deployments; tags for capability (vision, tools, json-mode).
+Providers without a maintained `@ai-sdk/*` package use documented REST shims listed in `docs/foss-exceptions.md` (R84 exception path).
+
+- R15. Adapter marketplace: signed plugin bundles installable from workbench; local catalog in T2; optional remote catalog URL in T3. Community submission flow with schema validation (T3).
+- R16. Model registry: alias → multiple deployments; tags for capability (vision, tools, json-mode). Implemented in `packages/gateway-core` (U13); admin UI in U20.
 
 **Atomic Gateway — routing & reliability**
 
 - R17. Retries, fallback chains, budget-fallbacks, cooldowns, usage-based load balancing.
 - R18. Context-window pre-check; content-policy fallbacks.
-- R19. A/B traffic mirroring: shadow deployments receive duplicate requests; primary latency unaffected; shadow responses logged for comparison.
+- R19. A/B traffic mirroring (T3 / self-host profile): shadow deployments receive duplicate requests; primary latency unaffected; shadow responses logged for comparison.
 - R20. Prompt caching passthrough for providers that support it.
 
 **Atomic Gateway — auth and personal controls**
@@ -112,8 +114,8 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 
 - R26. Per-request logging: tokens, cost, latency, virtual key, project tag, cache hit, shadow flag.
 - R27. Spend dashboards and export API; budget alert webhooks to Slack/email.
-- R28. OpenTelemetry traces, Prometheus metrics, Langfuse/LangSmith-compatible export.
-- R29. Secret manager backends: env, OS keychain, HashiCorp Vault, AWS Secrets Manager.
+- R28. OpenTelemetry traces, Prometheus metrics; **Langfuse self-host** (primary FOSS trace UI). Optional OpenTelemetry exporter compatible with LangSmith ingest format (T3; not a hard dependency on LangSmith SaaS).
+- R29. Secret manager backends: env + OS keychain (T1); HashiCorp Vault and AWS Secrets Manager (T3 self-host profile only).
 
 **Atomic Gateway — MCP**
 
@@ -191,7 +193,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - R72. Bug report email → find code → fix → verify dev server → deploy → draft reply.
 - R73. Analytics from plain English → query → chart → 30-day comparison follow-up.
 - R74. Competitive site audit → dual screenshots → UX/copy/feature report.
-- R75. Dev standup prep → git + Vercel + Gmail synthesis.
+- R75. Personal build log → git + Vercel + Gmail synthesis (solo "what did I ship?" journal; not a team standup).
 - R76. Weekly metrics digest → query metrics → HTML report with charts → draft email with attachment.
 - R77. Failed deployment fix → Vercel logs → patch → verify → redeploy.
 - R78. Update hero → edit → dev preview → deploy → confirm live URL.
@@ -232,7 +234,7 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - AE1. Bug report email to deployed fix (R72).
 - AE2. Analytics query + 30-day follow-up (R73).
 - AE3. Competitive site audit report (R74).
-- AE4. Dev standup prep (R75).
+- AE4. Personal build log synthesis (R75).
 - AE5. Weekly metrics HTML email digest (R76).
 - AE6. Failed deployment fix (R77).
 - AE7. Hero update and verify live (R78).
@@ -243,10 +245,14 @@ Builders lose flow switching between editors, terminals, browsers, dashboards, e
 - AE12. First-run onboarding: BYOK keys stored in vault; OS keychain unlock; default models selected (R22, R68).
 - AE13. Mobile push approval unblocks deploy step (R82, F8).
 - AE14. Bi-temporal memory answers "what did deploy target before last week?" (R54).
+- AE15. Encrypted backup export → fresh install → import restores projects, workflows, and gateway config (R24).
+- AE16. Workflow library export → import on second machine; templates runnable without marketplace (R70).
+- AE17. Activity feed shows agent run, spend, and deploy outcome within 5s of workflow completion (R71).
+- AE18. Mobile biometric unlock required before vault secrets accessible (R83).
 
 ### Success Criteria
 
-- AE1–AE14 pass in CI (mock external services where needed; real providers in staging).
+- AE1–AE18 pass in CI (mock external services where needed; real providers in staging).
 - OpenAI Python/JS SDK works against gateway unchanged except `baseURL`.
 - Every provider family in R14 has at least one adapter passing contract tests.
 - Desktop + mobile + Docker + Helm all install from documented paths.
@@ -273,11 +279,12 @@ There is no deferred product scope in this plan.
 
 ### Assumptions
 
-- Postgres is the production datastore for gateway and orchestrator in self-host; SQLite is the default for single-user desktop mode.
+- **Desktop data layer:** Embedded Postgres via [PGlite](https://github.com/electric-sql/pglite) (WASM, single data dir) for projects, vault metadata, audit, and bi-temporal graph; LanceDB embedded for vectors. No separate Docker Postgres required on desktop.
+- **Self-host data layer:** Standard Postgres + Redis + LanceDB (Compose/Helm). PGlite is desktop-only.
 - Mobile uses Tauri 2 mobile for maximum code reuse with desktop.
-- Provider adapters ship in waves within the program but all R14 families complete before GA — no family left unimplemented.
-- Vercel AI SDK `@ai-sdk/*` packages cover most cloud providers; gaps filled with official OSS clients per R86.
-- **Solo-first:** no user-management server required for desktop; self-host Docker/K8s runs as single-tenant personal stack.
+- Provider adapters ship in waves (T1 → T3) but all R14 families complete before T3 release.
+- Vercel AI SDK `@ai-sdk/*` packages cover most cloud providers; gaps use REST shims per `docs/foss-exceptions.md`.
+- **Solo-first:** no user-management server in desktop mode; self-host runs single-tenant personal stack.
 
 ### Key Technical Decisions
 
@@ -287,10 +294,11 @@ There is no deferred product scope in this plan.
 - **KTD4.** Provider plugins in `packages/gateway-providers/*` + marketplace signed bundles.
 - **KTD5.** Dual MCP: local `mcp-hub` (workstation) + gateway MCP (external).
 - **KTD6.** LangGraph workflows + cron scheduler in orchestrator.
-- **KTD7.** Bi-temporal graph in Postgres + LanceDB vectors (not lightweight SQLite-only graph).
-- **KTD8.** Redis for cache, rate limits, shadow request queue in production.
+- **KTD7.** Bi-temporal graph: **PGlite** (desktop) or **Postgres** (self-host) + **LanceDB** vectors. Hybrid retrieval uses `flexsearch` or `minisearch` for BM25 (R55). No SQLite for graph state.
+- **KTD8.** Redis for cache, rate limits, shadow queue in self-host only; desktop uses in-process LRU + optional local Redis profile.
 - **KTD9.** Local identity via OS keychain (`keytar`) + optional app passcode; connector OAuth via `openid-client` PKCE. No SSO/SAML/SCIM.
-- **KTD10.** Helm chart for K8s; Compose for single-node.
+- **KTD10.** Helm chart (T3) for K8s; Compose (T2) for single-node self-host.
+- **KTD12. Agent runtime phasing:** U6 ships in two increments — **U6a** (T1): LangGraph + local MCP hub (U5) + gateway LLM; **U6b** (T2): add gateway MCP (U19) tools. U6 does not block on U19 for initial agent chat.
 - **KTD11. FOSS SDK composition over custom glue** (session-settled: user-directed — maximize maintained open-source AI SDKs; build only gateway policy/routing layer ourselves). Layering:
   - **Gateway adapters:** thin `ProviderAdapter` wrapper → `@ai-sdk/<provider>` → our router/budget/guardrails.
   - **Agents:** `@langchain/langgraph` graphs + `@langchain/mcp-adapters` + Vercel `ai` streaming to gateway.
@@ -328,8 +336,8 @@ flowchart TB
   end
 
   subgraph Data["Data Layer"]
-    PG[(Postgres)]
-    Redis[(Redis)]
+    PGlite[(PGlite / Postgres)]
+    Redis[(Redis self-host)]
     Lance[(LanceDB)]
   end
 
@@ -340,28 +348,32 @@ flowchart TB
   Agent --> LocalMCP
   Agent --> Mem
   Gateway --> Adapters
-  Gateway --> PG
+  Gateway --> PGlite
   Gateway --> Redis
-  Mem --> PG
+  Mem --> PGlite
   Mem --> Lance
-  API --> PG
+  API --> PGlite
 ```
 
 ### Phased Delivery
 
-| Phase | Focus | Units |
-| --- | --- | --- |
-| P0 | Monorepo, orchestrator, projects, FOSS governance | U1–U3, U32 |
-| P1 | Gateway core + router | U13, U17 |
-| P2 | Provider catalog wave 1 (US labs + local) | U15 |
-| P3 | Provider catalog wave 2 (cloud + extended) | U23 |
-| P4 | Gateway personal controls (keys, audit, shadow) | U18, U24, U25 |
-| P5 | MCP gateway, cache, guardrails, admin | U19, U22, U20 |
-| P6 | Workbench + surfaces | U4, U14, U8, U21 |
-| P7 | Memory graph + AI dev | U9, U16 |
-| P8 | Connectors + personal activity feed | U10, U27 |
-| P9 | Workflows + scheduler + all 8 AEs | U7, U12, U28 |
-| P10 | Mobile, marketplace, K8s, ship | U29, U30, U11, U31 |
+Phases respect unit dependencies (providers before router; vault before audit; local MCP before gateway MCP).
+
+| Phase | Focus | Units | Tier |
+| --- | --- | --- | --- |
+| P0 | Monorepo, orchestrator, projects, vault/MCP foundation, FOSS governance | U1–U3, U5, U32 | T1 |
+| P1 | Gateway core + model registry | U13 | T1 |
+| P2 | Provider wave 1 + router/fallbacks | U15, U17 | T1 |
+| P3 | Provider wave 2 (full R14 catalog) | U23 | T3 |
+| P4 | Personal controls: keys, audit, backup | U18, U25 | T1 |
+| P5 | Agent runtime (local MCP), workbench shell | U6a, U14 | T1 |
+| P6 | Editor, terminal, browser, memory, AI dev | U4, U8, U9, U16 | T1–T2 |
+| P7 | MCP gateway, cache, guardrails, admin; agent gateway MCP | U19, U22, U20, U6b | T2 |
+| P8 | Connectors + DB/email panels + webhooks | U10, U21, U27 | T2 |
+| P9 | Workflows, scheduler, all eight AEs | U7, U28, U12 | T2–T3 |
+| P10 | Shadow routing, mobile, marketplace, deploy, ship | U24, U29, U30, U11, U31 | T2–T3 |
+
+**Note:** U6a = agent with local MCP only (depends U5, U13). U6b = add gateway MCP (depends U19). U17 no longer includes shadow logic (see U24).
 
 ---
 
@@ -373,8 +385,8 @@ flowchart TB
 | U2 | Orchestrator sidecar and API | U1 |
 | U3 | Workspace, project, and scripts registry | U2 |
 | U4 | Editor and terminal panels | U3, U14 |
-| U5 | Local MCP hub and credential vault | U2 |
-| U6 | Agent runtime via Atomic Gateway | U5, U13, U19 |
+| U5 | Local MCP hub and credential vault (`packages/vault`) | U2 |
+| U6 | Agent runtime via Atomic Gateway (U6a local MCP, U6b +gateway MCP) | U5, U13; U19 for U6b |
 | U7 | Workflow engine, library, and scheduler | U6 |
 | U8 | Browser panel and Playwright MCP | U5 |
 | U9 | Bi-temporal knowledge graph and memory | U3 |
@@ -385,7 +397,7 @@ flowchart TB
 | U14 | Modern workbench shell UI | U3 |
 | U15 | Provider adapters wave 1 | U13 |
 | U16 | AI-native dev and debug assist | U4, U6, U9 |
-| U17 | Router, fallbacks, shadow mirroring | U13, U15 |
+| U17 | Router, fallbacks, load balancing (no shadow) | U13, U15 |
 | U18 | Virtual keys, budgets, spend, alerts | U13 |
 | U19 | MCP Gateway | U13 |
 | U20 | Gateway admin UI | U13, U18 |
@@ -393,7 +405,7 @@ flowchart TB
 | U22 | Cache, guardrails, observability | U13 |
 | U23 | Provider adapters wave 2 (full R14 catalog) | U15 |
 | U24 | A/B shadow traffic mirroring | U17 |
-| U25 | Local auth, vault, audit log, and backup | U13, U18 |
+| U25 | Personal audit log, backup/export, per-project ACL | U5, U13, U18 |
 | U27 | Generic webhook connector | U10 |
 | U28 | Cron and event workflow triggers | U7 |
 | U29 | Plugin and template marketplace | U7, U15, U22 |
@@ -406,17 +418,17 @@ flowchart TB
 - **Goal:** pnpm monorepo; Tauri 2 desktop opens workbench shell.
 - **Requirements:** R1, R6, R41
 - **Files:** `package.json`, `pnpm-workspace.yaml`, `apps/desktop/`, `packages/shared/`, `packages/ui/`
-- **Approach:** Tauri 2 + React + Vite. Design tokens in `packages/ui`. Sidecar slots for orchestrator and gateway. Pin FOSS AI deps in root `package.json` catalog. CI builds Linux artifact.
+- **Approach:** Tauri 2 + React + Vite. Design tokens in `packages/ui`. Sidecar slots for orchestrator and gateway. Pin FOSS AI deps in root `package.json` catalog. CI builds **Linux, macOS, and Windows** artifacts (R1).
 - **Patterns to follow:** `pnpm` workspace catalog for shared `@ai-sdk/*`, `@langchain/*`, `@modelcontextprotocol/sdk` versions.
 - **Test scenarios:** `pnpm -r build` passes; app launches headless in CI.
 - **Verification:** Desktop CI build green.
 
 ### U2. Orchestrator sidecar and API
 
-- **Goal:** Fastify + WebSocket API; Postgres/SQLite data layer abstraction.
+- **Goal:** Fastify + WebSocket API; PGlite (desktop) / Postgres (self-host) via Drizzle adapter.
 - **Requirements:** R6
-- **Files:** `apps/orchestrator/src/server.ts`, `packages/shared/src/api-types.ts`
-- **Approach:** Health, graceful shutdown, data dir bootstrap. Tauri spawns on start.
+- **Files:** `apps/orchestrator/src/server.ts`, `packages/shared/src/api-types.ts`, `packages/db/`
+- **Approach:** `packages/db` abstracts PGlite vs Postgres from env `DATA_BACKEND`. Health, graceful shutdown, data dir bootstrap. Tauri spawns on start.
 - **Test scenarios:** `/health` 200; WS connects; crash restart within 10s.
 - **Verification:** Integration test spawns orchestrator.
 
@@ -425,16 +437,16 @@ flowchart TB
 - **Goal:** CRUD workspaces/projects; script definitions; state persistence; personal activity feed.
 - **Requirements:** R42, R43, R44, R69, R71
 - **Files:** `apps/orchestrator/src/projects/`, `apps/desktop/src/features/projects/`, `apps/desktop/src/features/activity/`
-- **Approach:** Postgres/SQLite schema; panel state JSON per project; scripts as named shell/npm commands in workspace manifest. Activity feed aggregates agent runs, spend, deploys from audit log + workflow history.
-- **Test scenarios:** Two projects switch without state loss; dashboard shows git branch.
+- **Approach:** PGlite/Postgres schema via Drizzle; panel state JSON per project; scripts as named shell/npm commands in workspace manifest. Activity feed aggregates agent runs, spend, deploys from audit log + workflow history.
+- **Test scenarios:** Two projects switch without state loss; dashboard shows git branch; activity feed updates within 5s of run (AE17).
 - **Verification:** API tests + Playwright switch smoke.
 
 ### U13. Atomic Gateway core proxy
 
-- **Goal:** Full OpenAI-compatible API surface including images and audio.
-- **Requirements:** R7–R12
-- **Files:** `apps/gateway/`, `packages/gateway-core/`
-- **Approach:** Fastify on `:4000`; all R7 endpoints; hot reload config; pass-through mode. SSE streaming delegates to `@ai-sdk/*` provider `streamText` internally where applicable.
+- **Goal:** Full OpenAI-compatible API surface including images and audio; model registry (R16).
+- **Requirements:** R7–R12, R16
+- **Files:** `apps/gateway/`, `packages/gateway-core/` (includes `model-registry.ts`)
+- **Approach:** Fastify on `:4000`; all R7 endpoints; hot reload config; pass-through mode. Model registry: alias → deployments, capability tags. SSE streaming delegates to `@ai-sdk/*` `streamText` where applicable.
 - **Test scenarios:** OpenAI SDK chat + embed + image; 401 without key.
 - **Verification:** Contract test suite.
 
@@ -488,23 +500,24 @@ Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 - **Test scenarios:** Contract test per family; marketplace bundle install loads new adapter.
 - **Verification:** Full provider matrix CI job.
 
-### U17. Router, fallbacks, and shadow mirroring
+### U17. Router, fallbacks, and load balancing
 
-- **Goal:** Production routing with reliability and A/B shadow support.
-- **Requirements:** R17, R18, R19, R20
+- **Goal:** Production routing with reliability (shadow handled separately in U24).
+- **Requirements:** R17, R18, R20
 - **Files:** `apps/gateway/src/router/`
 - **Dependencies:** U13, U15
-- **Approach:** Fallback chains, budget-fallbacks, cooldowns, LB. Shadow: async duplicate to shadow deployment; log diff metadata. Prompt cache headers forwarded.
-- **Test scenarios:** Covers AE9, AE11; context pre-check rejects overflow.
+- **Approach:** Fallback chains, budget-fallbacks, cooldowns, usage-based LB. Context-window pre-check; content-policy fallbacks. Prompt cache headers forwarded. **No shadow duplication here.**
+- **Test scenarios:** Covers AE9; context pre-check rejects overflow.
 - **Verification:** Router integration tests.
 
 ### U24. A/B shadow traffic mirroring
 
-- **Goal:** Shadow route configuration and comparison UI.
+- **Goal:** Shadow route configuration, async duplication, and comparison UI (R19 only).
 - **Requirements:** R19
+- **Tier:** T3 / self-host profile
 - **Files:** `apps/gateway/src/shadow/`, admin UI shadow page
-- **Dependencies:** U17
-- **Approach:** Config `shadow_routes: { primary: gpt-4o, shadow: gpt-4o-mini, sample_rate: 0.1 }`. Queue shadow calls in Redis; never block primary response.
+- **Dependencies:** U17, U22 (Redis/BullMQ queue in self-host)
+- **Approach:** Config `shadow_routes: { primary, shadow, sample_rate }`. Queue shadow calls in Redis (self-host) or in-process queue (desktop); never block primary response.
 - **Test scenarios:** Covers AE11: primary p99 unchanged with shadow enabled.
 - **Verification:** Load test comparing latency with/without shadow.
 
@@ -517,15 +530,15 @@ Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 - **Test scenarios:** Covers AE10; budget alert webhook fires.
 - **Verification:** Auth + spend integration tests.
 
-### U25. Local auth, vault, audit log, and backup
+### U25. Personal audit log, backup/export, and per-project ACL
 
-- **Goal:** Solo-user identity, secret protection, personal audit trail, and machine migration.
-- **Requirements:** R22, R23, R24, R25
-- **Files:** `apps/orchestrator/src/auth/`, `apps/gateway/src/audit/`, `packages/vault/`
-- **Dependencies:** U13, U18
-- **Approach:** OS keychain via `keytar`; optional app passcode and biometric unlock (mobile/desktop). Append-only audit log for agent runs, config changes, and approvals. Encrypted `.atomic-backup` export/import for settings, workflows, and gateway config. Per-project tool/connector ACL enforced at agent runtime.
-- **Test scenarios:** Covers AE12: first-run stores BYOK in vault; unlock required before connector OAuth; audit entry written on destructive approval.
-- **Verification:** Vault + audit + backup round-trip tests.
+- **Goal:** Audit trail, machine migration, and agent permission enforcement (extends U5 vault; does not reimplement vault).
+- **Requirements:** R23, R24, R25
+- **Files:** `apps/orchestrator/src/audit/`, `apps/gateway/src/audit/`, `packages/vault/src/backup.ts`, `apps/orchestrator/src/auth/acl.ts`
+- **Dependencies:** U5, U13, U18
+- **Approach:** Append-only audit log in PGlite/Postgres. Encrypted `.atomic-backup` export/import (settings, workflows, gateway config, memory snapshot metadata). Per-project tool/connector/MCP ACL enforced in U6 agent middleware. Optional app passcode layers on U5 keychain unlock.
+- **Test scenarios:** Covers AE12, AE15; destructive approval writes audit row; ACL blocks disabled connector.
+- **Verification:** `pnpm --filter orchestrator test:vault` + backup round-trip tests.
 
 ### U19. MCP Gateway
 
@@ -572,32 +585,35 @@ Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 - **Test scenarios:** Save round-trip; PTY echo; multi-tab persist on switch.
 - **Verification:** API + smoke tests.
 
-### U5. Local MCP hub and vault
+### U5. Local MCP hub and credential vault
 
-- **Goal:** Workstation-native tools and secrets.
-- **Requirements:** R68
-- **Files:** `packages/mcp-hub/`, vault module
-- **Approach:** Filesystem, git, shell via `@modelcontextprotocol/server-filesystem`, `server-github`, etc. Local hub built on `@modelcontextprotocol/sdk`. Vault: `keytar` + encrypted Postgres.
-- **Test scenarios:** Secret never in logs; MCP restart recovery.
-- **Verification:** Vault round-trip tests.
+- **Goal:** Workstation-native tools and secrets (`packages/vault` is canonical; U25 extends it).
+- **Requirements:** R22, R68
+- **Files:** `packages/mcp-hub/`, `packages/vault/`
+- **Approach:** Filesystem, git, shell via `@modelcontextprotocol/server-filesystem`, `server-github`, `server-git`. Local hub on `@modelcontextprotocol/sdk`. Vault: `keytar` + encrypted secrets in PGlite/Postgres. First-run BYOK flow (AE12).
+- **Test scenarios:** Secret never in logs; MCP restart recovery; vault unlock required before OAuth.
+- **Verification:** `pnpm --filter vault test`.
 
 ### U6. Agent runtime
 
-- **Goal:** LangGraph agent via gateway only; FOSS orchestration stack.
+- **Goal:** LangGraph agent via gateway; phased delivery per KTD12.
 - **Requirements:** R50, R53, R61, R87, R88
 - **Files:** `apps/orchestrator/src/agent/`
-- **Approach:** `@langchain/langgraph` StateGraph + `interrupt()` for approvals. Tools from `@langchain/mcp-adapters` `MultiServerMCPClient` (local + gateway MCP). LLM via `ChatOpenAI` pointed at `http://localhost:4000/v1` or Vercel `ai` `streamText` with custom gateway provider. Desktop agent chat uses `@ai-sdk/react` streaming transport.
-- **Test scenarios:** Tool loop completes; approval blocks deploy.
-- **Verification:** Agent integration tests.
+- **Dependencies:** U5, U13 (U6a); +U19 (U6b)
+- **Approach:**
+  - **U6a (T1):** `@langchain/langgraph` StateGraph + `interrupt()` approvals. Tools from `@langchain/mcp-adapters` → **local MCP hub only**. LLM via Vercel `ai` `streamText` → Atomic Gateway. Desktop chat: `@ai-sdk/react`.
+  - **U6b (T2):** Extend `MultiServerMCPClient` with gateway MCP (U19) tools. Per-project ACL from U25 enforced before tool invocation.
+- **Test scenarios:** Tool loop completes; approval blocks deploy; ACL denies out-of-scope tool.
+- **Verification:** Agent integration tests (`test:agent-local`, `test:agent-gateway-mcp`).
 
 ### U7. Workflow engine, library, and scheduler
 
-- **Goal:** Reusable workflows with cron and events.
-- **Requirements:** R51, R52
-- **Files:** `packages/workflows/`, `apps/orchestrator/src/scheduler/`
-- **Approach:** Template store; cron via `node-cron`; event bus for deploy-fail, new-email hooks.
-- **Test scenarios:** Cron fires workflow; event trigger on mock webhook.
-- **Verification:** Scheduler integration tests.
+- **Goal:** Reusable workflows with cron, events, and export/import.
+- **Requirements:** R51, R52, R70
+- **Files:** `packages/workflows/`, `apps/orchestrator/src/scheduler/`, `packages/workflows/src/export.ts`
+- **Approach:** Template store with semver; cron via `node-cron`; event bus for deploy-fail, new-email hooks. Export/import as signed JSON bundle (AE16).
+- **Test scenarios:** Cron fires workflow; export → import restores templates; covers AE16.
+- **Verification:** Scheduler + library export integration tests.
 
 ### U28. Cron and event workflow triggers
 
@@ -620,11 +636,11 @@ Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 ### U9. Bi-temporal knowledge graph
 
 - **Goal:** Full memory subsystem with time travel.
-- **Requirements:** R54–R58
+- **Requirements:** R54–R58, R55
 - **Files:** `packages/memory/`
-- **Approach:** Postgres graph via Drizzle ORM + `pgvector`. Embeddings via `@xenova/transformers` (`Xenova/gte-small` ONNX) with Ollama embed fallback. LanceDB for vector index. Consolidation cron. Contradiction edges.
+- **Approach:** PGlite/Postgres graph via Drizzle + `pgvector` (self-host). Embeddings: `@xenova/transformers` (`Xenova/gte-small` ONNX) + Ollama embed fallback. LanceDB vector index. BM25 via `minisearch` on fact text. Consolidation cron. Contradiction edges.
 - **Test scenarios:** Covers AE14; ingest + query "deploy target last Tuesday".
-- **Verification:** Graph traversal unit tests.
+- **Verification:** Graph traversal + hybrid retrieval unit tests.
 
 ### U10. Full connector ecosystem
 
@@ -633,13 +649,13 @@ Marketplace adapter plugins must declare their FOSS SDK dependency in manifest.
 - **Files:** `apps/orchestrator/src/connectors/`, `packages/mcp-hub/src/servers/`
 - **Approach:** Prefer FOSS MCP servers over bespoke REST clients:
 
-| Connector | FOSS integration |
-| --- | --- |
-| GitHub | `@modelcontextprotocol/server-github` + `@octokit/rest` |
-| Vercel | `@modelcontextprotocol/server-vercel` or OpenAPI MCP shim |
-| Gmail | `@modelcontextprotocol/server-gmail` (community) or Google APIs via `googleapis` |
-| Supabase | `@supabase/supabase-js` + Postgres MCP via `server-postgres` |
-| Slack | `@modelcontextprotocol/server-slack` or `@slack/web-api` |
+| Connector | FOSS integration | Notes |
+| --- | --- | --- |
+| GitHub | `@modelcontextprotocol/server-github` + `@octokit/rest` | Official MCP server |
+| Vercel | Custom MCP server in `packages/mcp-servers/vercel` | No official `server-vercel`; build thin wrapper |
+| Gmail | Custom MCP server + `googleapis` | No official `server-gmail`; OAuth via R94 |
+| Supabase | `@supabase/supabase-js` + `@modelcontextprotocol/server-postgres` | Official postgres MCP |
+| Slack | Custom MCP server + `@slack/web-api` | No official `server-slack`; build thin wrapper |
 
 Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Connector health surfaced on project dashboard (R44).
 - **Test scenarios:** Each connector lists resources; OAuth refresh succeeds; health badge green after connect.
@@ -649,13 +665,13 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 
 - **Goal:** Enforce FOSS-first AI stack (R84–R96); keep `docs/foss-ai-stack.md` in sync with runtime deps.
 - **Requirements:** R84, R95, R96
-- **Files:** `docs/foss-ai-stack.md`, `scripts/foss-inventory-check.ts`, `.github/workflows/licenses.yml`
+- **Files:** `docs/foss-ai-stack.md`, `docs/foss-exceptions.md`, `scripts/foss-inventory-check.ts`, `.github/workflows/licenses.yml`
 - **Dependencies:** U1
 - **Approach:**
   - Root `package.json` pnpm catalog pins all `@ai-sdk/*`, `@langchain/*`, `@modelcontextprotocol/*` versions.
   - CI runs `pnpm licenses list --json` and `@cyclonedx/cyclonedx-npm` SBOM export.
   - Block GPL/AGPL/LGPL in production `dependencies` without allowlist entry in `foss-allowlist.json`.
-  - `foss-inventory-check.ts` diffs `package.json` AI-related deps against `docs/foss-ai-stack.md` table; fails PR on drift.
+  - `foss-inventory-check.ts` diffs `package.json` AI deps against `docs/foss-ai-stack.md` and `docs/foss-exceptions.md`.
   - Gateway adapter PRs must update inventory when adding a provider SDK.
 - **Test scenarios:** Drifted inventory fails CI; copyleft dep without allowlist fails; SBOM artifact uploaded per release.
 - **Verification:** `pnpm foss:check` green in CI.
@@ -687,7 +703,7 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 
 ### U12. All eight reference workflows
 
-- **Goal:** AE1–AE8 complete in CI.
+- **Goal:** AE1–AE8 complete in CI; AE15–AE18 covered by U25, U7, U3, U30 respectively.
 - **Requirements:** R72–R79
 - **Files:** `packages/workflows/src/templates/*`, `examples/sample-next-app/`
 - **Dependencies:** U7, U8, U10, U21, U28
@@ -717,7 +733,7 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 - **Requirements:** R82, R83
 - **Files:** `apps/mobile/`
 - **Approach:** Tauri 2 mobile; shared `@atomic/ui`; push notifications for approvals; biometric vault unlock.
-- **Test scenarios:** Covers AE13: push approval resumes workflow.
+- **Test scenarios:** Covers AE13, AE18: push approval resumes workflow; biometric required for vault.
 - **Verification:** Mobile simulator CI + manual device checklist.
 
 ### U11. Docker Compose self-host
@@ -749,9 +765,11 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 | All providers | `pnpm --filter gateway-providers test:matrix` | PR |
 | Gateway integration | `pnpm --filter gateway test:integration` | PR |
 | Orchestrator integration | `pnpm --filter orchestrator test:integration` | PR |
-| Vault + audit | `pnpm --filter orchestrator test:vault` | PR |
+| Vault + audit + backup | `pnpm --filter orchestrator test:vault` | PR |
+| Memory hybrid retrieval | `pnpm --filter memory test` | PR |
 | Workflow e2e | `pnpm --filter desktop test:e2e --workflows=all` | PR |
-| Mobile smoke | `pnpm --filter mobile test:smoke` | PR |
+| Desktop installers | `pnpm --filter desktop build:tauri --target matrix` | PR + release |
+| Mobile smoke + biometric | `pnpm --filter mobile test:smoke` | PR |
 | Docker Compose | `docker compose up --wait` | PR |
 | Helm kind | `helm test atomic-workstation` | PR nightly |
 | Security | secret scan + vault audit + no creds in logs | PR |
@@ -762,33 +780,42 @@ Thin OAuth loopback wrappers in orchestrator; credentials from vault (U5). Conne
 
 ## Definition of Done
 
-**Global — nothing deferred**
+**Global — Tier 3 (Full program)**
 
 - R1–R96 implemented and traced to units.
-- AE1–AE14 pass (CI or documented staging for provider-specific cases).
-- R84–R96 FOSS mandate satisfied: `docs/foss-ai-stack.md` current; `pnpm foss:check` green; no unapproved copyleft runtime deps.
-- All R14 provider families have shipping adapters using FOSS SDKs per R85–R86.
-- Desktop, mobile, Docker, Helm install paths documented and CI-verified.
-- Atomic Gateway: full API, all providers, personal keys/budgets, shadow, MCP, cache, guardrails, admin, marketplace.
+- AE1–AE18 pass (CI or documented staging for provider-specific cases).
+- R84–R96 FOSS mandate satisfied: `docs/foss-ai-stack.md` + `docs/foss-exceptions.md` current; `pnpm foss:check` green.
+- All R14 provider families have shipping adapters per tier table.
+- Desktop (3 OS), mobile, Docker, Helm install paths documented and CI-verified.
+- Atomic Gateway: full API, providers, personal keys/budgets, shadow (T3), MCP, cache, guardrails, admin, marketplace.
 - Eight reference workflows runnable end-to-end.
-- Bi-temporal memory operational.
-- Solo local auth + vault + personal audit log operational (AE12).
+- Bi-temporal memory on PGlite (desktop) and Postgres (self-host).
+- Solo vault + audit + backup operational (AE12, AE15).
 - No LiteLLM or third-party gateway code.
-- No team RBAC, SSO, or multi-user features shipped.
+- No team RBAC, SSO, or multi-user features.
 - GA release artifacts published.
+
+**Tier milestones**
+
+| Tier | Exit criterion |
+| --- | --- |
+| **T1 Solo GA** | Desktop P0–P6; AE1–AE4, AE6–AE8, AE9, AE10, AE12, AE14–AE17; gateway wave 1; GitHub+Vercel connectors |
+| **T2 Power** | Docker Compose; U6b, U10 full connectors; AE2, AE5, AE13; provider wave 2 partial |
+| **T3 Full** | All R1–R96; AE11, AE18; K8s Helm; full R14; marketplace; mobile store artifacts |
 
 **Per-phase exit**
 
 | Phase | Exit criterion |
 | --- | --- |
-| P0–P1 | Gateway accepts OpenAI SDK chat; FOSS inventory + license CI green |
-| P2–P3 | Full R14 provider matrix green |
-| P4 | AE9, AE10, AE11, AE12 pass |
-| P5 | Admin UI complete; MCP gateway live |
-| P6–P7 | Workbench + memory + dev assist live |
-| P8 | All connectors + personal activity feed |
-| P9 | AE1–AE8 e2e green |
-| P10 | Mobile AE13; Helm deploy; marketplace install |
+| P0–P1 | Gateway accepts OpenAI SDK chat; FOSS + license CI green; PGlite boots |
+| P2 | AE9, AE10; router + wave 1 providers green |
+| P3 | Full R14 provider matrix green |
+| P4 | AE12, AE15 pass |
+| P5 | U6a agent chat with local MCP tools |
+| P6–P7 | Workbench + memory AE14; dev assist live |
+| P8 | All connectors; AE17 activity feed |
+| P9 | AE1–AE8 e2e green; AE16 workflow export |
+| P10 | AE11 shadow (T3); AE13, AE18 mobile; Helm + marketplace |
 
 ---
 
@@ -807,7 +834,7 @@ OpenAI, Anthropic, xAI, Perplexity, Cohere, AI21, Google Gemini, Vertex AI, Azur
 | Bug email → fix | R72 | `bug-email-to-fix.ts` |
 | Analytics NL query | R73 | `analytics-query.ts` |
 | Competitive audit | R74 | `competitive-audit.ts` |
-| Standup prep | R75 | `standup-prep.ts` |
+| Standup / build log | R75 | `standup-prep.ts` |
 | Weekly metrics digest | R76 | `weekly-metrics-digest.ts` |
 | Failed deploy fix | R77 | `fix-deployment.ts` |
 | Hero update live | R78 | `update-hero.ts` |
@@ -824,7 +851,7 @@ Maintained in `docs/foss-ai-stack.md` and enforced by U32. Summary by layer:
 | Agent runtime | `@langchain/langgraph`, `@langchain/core`, `@langchain/mcp-adapters` | U6 |
 | UI streaming | `ai`, `@ai-sdk/react` | U6, U14 |
 | MCP transport | `@modelcontextprotocol/sdk`, `@modelcontextprotocol/server-*` | U5, U10, U19 |
-| Embeddings / vectors | `@xenova/transformers`, LanceDB | U9 |
+| Embeddings / vectors | `@xenova/transformers`, LanceDB, `minisearch` (BM25) | U9 |
 | Token counting | `js-tiktoken` / `@dqbd/tiktoken` | U18 |
 | Observability | `@opentelemetry/sdk-node`, `prom-client`, Langfuse (self-host) | U22 |
 | Guardrails | `redact-pii`, custom plugins | U22 |
@@ -832,7 +859,29 @@ Maintained in `docs/foss-ai-stack.md` and enforced by U32. Summary by layer:
 | Local vault | `keytar` | U5, U25 |
 | License governance | `@cyclonedx/cyclonedx-npm`, `pnpm licenses` | U32 |
 
-**Principle:** Atomic Gateway owns routing, policy, and keys — not provider HTTP. Adapters are thin wrappers over maintained FOSS SDKs (KTD11).
+**Principle:** Atomic Gateway owns routing, policy, and keys — not provider HTTP. Adapters are thin wrappers over maintained FOSS SDKs (KTD11). REST shims documented in `docs/foss-exceptions.md`.
+
+### Delivery tiers (sequencing, not scope cuts)
+
+| Tier | Audience milestone | Key requirements |
+| --- | --- | --- |
+| **T1 Solo GA** | Vibe coder ships from desktop daily | R1, R5–R6, R7–R12, R13–R18, R21–R25, R26–R27, R30–R33, R39–R53, R54–R61, R62–R63, R69–R71, R72–R79 (subset workflows), R84–R96 |
+| **T2 Power** | Self-host + full connectors + Docker | R3, R64–R67, R80–R81 (local), full connector panels, U6b, AE2, AE5 |
+| **T3 Full** | Complete platform per marketing | R2, R4, R14 (all families), R19, R29 (vault backends), R82–R83, R15 community flow, AE11, AE18, Helm |
+
+### Acceptance examples index
+
+| AE | Requirement | Unit |
+| --- | --- | --- |
+| AE1–AE8 | R72–R79 | U12 |
+| AE9–AE10 | R17, R21 | U17, U18 |
+| AE11 | R19 | U24 |
+| AE12 | R22, R68 | U5 |
+| AE13, AE18 | R82–R83 | U30 |
+| AE14 | R54 | U9 |
+| AE15 | R24 | U25 |
+| AE16 | R70 | U7 |
+| AE17 | R71 | U3 |
 
 ### Outside identity (unchanged non-goals)
 
