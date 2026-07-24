@@ -1,0 +1,12 @@
+node_modules
+dist
+target
+.turbo
+.DS_Store
+*.log
+.env
+.env.local
+data/
+*.db
+src-tauri/target
+apps/desktop/dist

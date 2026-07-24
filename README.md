@@ -4,7 +4,36 @@ A local-first AI workstation for **solo inventors and vibe coders** — one envi
 
 ## Status
 
-Planning phase. Implementation has not started.
+**P0 implemented** — monorepo, orchestrator, projects API, vault, MCP hub scaffold, FOSS CI.
+
+## Quick start
+
+```bash
+pnpm install
+pnpm foss:check
+pnpm -r build
+pnpm -r test
+
+# Terminal 1 — orchestrator
+pnpm --filter @atomic/orchestrator dev
+
+# Terminal 2 — desktop UI (Vite)
+pnpm --filter @atomic/desktop dev
+```
+
+Data defaults to `./data` (PGlite). Set `ATOMIC_VAULT_UNLOCKED=true` for local vault writes.
+
+## Packages
+
+| Package | Role |
+| --- | --- |
+| `apps/desktop` | Tauri 2 + React workbench shell |
+| `apps/orchestrator` | Fastify API + WebSocket |
+| `packages/db` | PGlite/Postgres via Drizzle |
+| `packages/vault` | Encrypted secrets store |
+| `packages/mcp-hub` | Local MCP client hub |
+| `packages/ui` | NeuroRainbow design tokens |
+| `packages/shared` | API types (Zod) |
 
 | Document | Purpose |
 | --- | --- |

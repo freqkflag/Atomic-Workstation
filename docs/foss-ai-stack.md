@@ -6,7 +6,15 @@ Canonical inventory for Atomic-Workstation AI/ML dependencies. Kept in sync with
 
 ---
 
-## Gateway provider adapters
+## Data and orchestration (P0)
+
+| Concern | FOSS package | License | Unit |
+| --- | --- | --- | --- |
+| Embedded SQL (desktop) | `@electric-sql/pglite` | Apache-2.0 | U2, U9 |
+| ORM | `drizzle-orm` | Apache-2.0 | U2, U3 |
+| API server | `fastify`, `@fastify/websocket` | MIT | U2 |
+
+---
 
 | Provider family | FOSS SDK | License | Unit |
 | --- | --- | --- | --- |
