@@ -1,0 +1,10 @@
+port: 4000
+host: 127.0.0.1
+masterKey: dev-master
+fallbackChains:
+  - alias: smart
+    targets: [smart, gpt-4o-mini, llama-local]
+shadowRoutes:
+  - primary: gpt-4o
+    shadow: gpt-4o-mini
+    sampleRate: 0.1
