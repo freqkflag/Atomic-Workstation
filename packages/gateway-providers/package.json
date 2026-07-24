@@ -1,0 +1,39 @@
+{
+  "name": "@atomic/gateway-providers",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:matrix": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.0",
+    "@ai-sdk/cohere": "^1.2.0",
+    "@ai-sdk/deepseek": "^0.2.0",
+    "@ai-sdk/fireworks": "^0.2.0",
+    "@ai-sdk/google": "^1.2.0",
+    "@ai-sdk/groq": "^1.2.0",
+    "@ai-sdk/mistral": "^1.2.0",
+    "@ai-sdk/openai": "^1.3.0",
+    "@ai-sdk/openai-compatible": "^0.2.0",
+    "@ai-sdk/perplexity": "^1.1.0",
+    "@ai-sdk/togetherai": "^0.2.0",
+    "@ai-sdk/xai": "^1.2.0",
+    "@atomic/gateway-core": "workspace:*",
+    "ai": "^4.3.0"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

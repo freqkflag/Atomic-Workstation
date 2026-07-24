@@ -1,0 +1,77 @@
+.workbench {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+
+.workbench__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+  background: rgba(11, 16, 32, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+.workbench__title {
+  font-family: var(--atomic-font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--atomic-cyan);
+}
+
+.workbench__main {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.panel {
+  background: rgba(18, 26, 43, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: var(--atomic-glow-cyan);
+}
+
+.panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--atomic-magenta);
+}
+
+.project-list,
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.project-list button,
+.activity-list li {
+  width: 100%;
+  text-align: left;
+  background: rgba(5, 7, 13, 0.65);
+  border: 1px solid rgba(217, 70, 239, 0.2);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  color: var(--atomic-text);
+}
+
+.project-list button[data-active="true"] {
+  border-color: var(--atomic-cyan);
+  box-shadow: var(--atomic-glow-cyan);
+}
+
+.status-bar {
+  display: flex;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: var(--atomic-text-muted);
+  border-top: 1px solid rgba(0, 229, 255, 0.12);
+}

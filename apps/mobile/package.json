@@ -1,0 +1,20 @@
+{
+  "name": "@atomic/mobile",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Tauri mobile build configured in src-tauri'",
+    "test:smoke": "vitest run src/smoke.test.ts"
+  },
+  "dependencies": {
+    "@atomic/shared": "workspace:*",
+    "@atomic/ui": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

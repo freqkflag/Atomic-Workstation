@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atomic Gateway Admin</title>
+  <style>
+    :root {
+      --bg: #05070d;
+      --surface: #121a2b;
+      --cyan: #00e5ff;
+      --magenta: #ff00aa;
+      --text: #e8eef8;
+    }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+    }
+    h1 { margin: 0; color: var(--cyan); font-family: Orbitron, sans-serif; }
+    main { padding: 1.5rem; display: grid; gap: 1rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(255, 0, 170, 0.25);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+    button {
+      background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      border: none;
+      color: #05070d;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    pre { overflow: auto; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header><h1>Atomic Gateway Admin</h1></header>
+  <main>
+    <section class="card">
+      <h2>Virtual Keys</h2>
+      <button id="load-keys">Refresh keys</button>
+      <pre id="keys-out">Loading…</pre>
+    </section>
+    <section class="card">
+      <h2>Spend</h2>
+      <button id="load-spend">Refresh spend</button>
+      <pre id="spend-out">Loading…</pre>
+    </section>
+    <section class="card">
+      <h2>Providers</h2>
+      <button id="load-providers">Refresh providers</button>
+      <pre id="providers-out">Loading…</pre>
+    </section>
+  </main>
+  <script>
+    async function fetchJson(path, el) {
+      const res = await fetch(path);
+      el.textContent = JSON.stringify(await res.json(), null, 2);
+    }
+    document.getElementById('load-keys').onclick = () =>
+      fetchJson('/admin/keys', document.getElementById('keys-out'));
+    document.getElementById('load-spend').onclick = () =>
+      fetchJson('/admin/spend', document.getElementById('spend-out'));
+    document.getElementById('load-providers').onclick = () =>
+      fetchJson('/admin/providers', document.getElementById('providers-out'));
+    document.getElementById('load-keys').click();
+  </script>
+</body>
+</html>

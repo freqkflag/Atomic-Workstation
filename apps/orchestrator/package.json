@@ -1,0 +1,30 @@
+{
+  "name": "@atomic/orchestrator",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx --env-file=../../.env watch src/cli.ts",
+    "start": "tsx --env-file=../../.env src/cli.ts",
+    "test": "vitest run",
+    "test:integration": "vitest run src/server.integration.test.ts",
+    "test:vault": "pnpm --filter @atomic/vault test"
+  },
+  "dependencies": {
+    "@atomic/db": "workspace:*",
+    "@atomic/workflows": "workspace:*",
+    "@atomic/mcp-hub": "workspace:*",
+    "@atomic/shared": "workspace:*",
+    "@atomic/vault": "workspace:*",
+    "@fastify/websocket": "catalog:",
+    "drizzle-orm": "catalog:",
+    "fastify": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

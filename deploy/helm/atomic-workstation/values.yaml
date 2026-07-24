@@ -1,0 +1,46 @@
+replicaCount: 2
+
+image:
+  gateway:
+    repository: atomic/gateway
+    tag: latest
+  orchestrator:
+    repository: atomic/orchestrator
+    tag: latest
+
+service:
+  gateway:
+    port: 4000
+  orchestrator:
+    port: 4310
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: atomic.local
+      paths:
+        - path: /v1
+          service: gateway
+        - path: /api
+          service: orchestrator
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+postgresql:
+  enabled: true
+  auth:
+    username: atomic
+    password: atomic
+    database: atomic
+
+redis:
+  enabled: true
+
+persistence:
+  enabled: true
+  size: 10Gi
