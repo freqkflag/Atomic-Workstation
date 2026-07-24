@@ -20,6 +20,12 @@ jobs:
       - run: pnpm -r build
       - run: pnpm -r test
       - run: pnpm --filter @atomic/orchestrator test:integration
+      - run: pnpm --filter @atomic/gateway test:contract
+      - run: pnpm --filter @atomic/gateway-providers test:matrix
+      - run: pnpm --filter @atomic/gateway test:integration
+      - run: pnpm --filter @atomic/orchestrator test:vault
+      - run: pnpm --filter @atomic/memory test
+      - run: pnpm --filter @atomic/mobile test:smoke
 
   licenses:
     runs-on: ubuntu-latest

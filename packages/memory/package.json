@@ -1,5 +1,5 @@
 {
-  "name": "@atomic/vault",
+  "name": "@atomic/memory",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./backup": {
-      "types": "./dist/backup.d.ts",
-      "import": "./dist/backup.js"
     }
   },
   "scripts": {
@@ -20,11 +16,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@atomic/db": "workspace:*",
-    "drizzle-orm": "catalog:"
-  },
-  "optionalDependencies": {
-    "keytar": "^7.9.0"
+    "minisearch": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",
