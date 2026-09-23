@@ -26,6 +26,30 @@ export interface GatewayServerConfig {
   configPath?: string;
 }
 
+const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function localCorsHook(
+  request: { method: string; headers: Record<string, unknown> },
+  reply: {
+    header: (k: string, v: string) => unknown;
+    code: (n: number) => { send: (p?: unknown) => unknown };
+  },
+  done: () => void,
+): void {
+  const origin = request.headers.origin as string | undefined;
+  if (origin && LOCAL_ORIGIN.test(origin)) {
+    reply.header("access-control-allow-origin", origin);
+    reply.header("vary", "Origin");
+    reply.header("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    reply.header("access-control-allow-headers", "content-type,authorization");
+  }
+  if (request.method === "OPTIONS") {
+    reply.code(204).send();
+    return;
+  }
+  done();
+}
+
 export async function buildGatewayServer(options: GatewayServerConfig = {}) {
   const configState = await loadGatewayConfig(options.configPath);
   const registry = createDefaultRegistry();
@@ -44,6 +68,7 @@ export async function buildGatewayServer(options: GatewayServerConfig = {}) {
 
   const app = Fastify({ logger: true });
 
+  app.addHook("onRequest", localCorsHook);
   app.addHook("preHandler", createAuthHook(keyStore));
 
   app.get("/health", async () => ({ status: "ok", service: "gateway" }));
