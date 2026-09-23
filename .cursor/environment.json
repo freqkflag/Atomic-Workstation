@@ -1,0 +1,26 @@
+{
+  "name": "Atomic Workstation",
+  "install": "corepack enable && pnpm install --frozen-lockfile && ([ -f .env ] || cp .env.example .env)",
+  "terminals": [
+    {
+      "name": "orchestrator",
+      "command": "pnpm --filter @atomic/orchestrator dev",
+      "description": "Fastify orchestrator API + WebSocket (workspaces, projects, vault, agents) on http://127.0.0.1:4310"
+    },
+    {
+      "name": "gateway",
+      "command": "pnpm --filter @atomic/gateway dev",
+      "description": "Atomic Gateway OpenAI-compatible API + admin UI on http://127.0.0.1:4000"
+    },
+    {
+      "name": "desktop",
+      "command": "pnpm --filter @atomic/desktop dev",
+      "description": "Tauri/React workbench UI via Vite dev server on http://localhost:1420"
+    }
+  ],
+  "ports": [
+    { "name": "desktop", "port": 1420 },
+    { "name": "gateway", "port": 4000 },
+    { "name": "orchestrator", "port": 4310 }
+  ]
+}
